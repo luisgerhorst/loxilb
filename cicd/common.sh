@@ -25,6 +25,7 @@ loxilbs=()
 ## Given a docker name(arg1), return its pid
 get_docker_pid() {
   id=`docker ps -f name=$1| grep -w $1 | cut  -d " "  -f 1 | grep -iv  "CONTAINER"`
+  set -eo pipefail
   pid=`docker inspect -f '{{.State.Pid}}' $id`
 }
 

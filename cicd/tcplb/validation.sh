@@ -1,4 +1,8 @@
 #!/bin/bash
+set -euo pipefail
+bash -n "$(command -v "$0")"
+set -x
+
 source ../common.sh
 echo SCENARIO-tcplb
 $hexec l3ep1 node ../common/tcp_server.js server1 &
