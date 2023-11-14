@@ -1,4 +1,9 @@
 #!/bin/bash
+set -euo pipefail
+shopt -s nullglob
+bash -n "$(command -v "$0")"
+set -x
+
 source ../common.sh
 if [ -z "$1" ]; then
     threads=50

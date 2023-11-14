@@ -1,4 +1,8 @@
 #!/bin/bash
+set -eo pipefail
+shopt -s nullglob
+bash -n "$(command -v "$0")"
+set -x
 
 source ../common.sh
 

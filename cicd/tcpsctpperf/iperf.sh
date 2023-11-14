@@ -1,4 +1,9 @@
 #!/bin/bash
+set -euo pipefail
+shopt -s nullglob
+bash -n "$(command -v "$0")"
+set -x
+
 count=$1
 time=$2
 

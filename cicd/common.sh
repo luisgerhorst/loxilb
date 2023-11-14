@@ -1,4 +1,6 @@
 #!/bin/bash
+bash -n "$(command -v "$0")"
+set -x
 
 if [[ "$1" == "init" ]]; then
   pull_dockers
@@ -42,6 +44,8 @@ pull_dockers() {
 ## arg1 - "loxilb"|"host"
 ## arg2 - instance-name
 spawn_docker_host() {
+  set -euo pipefail
+
   POSITIONAL_ARGS=()
   local bpath
   local kpath
@@ -89,9 +93,13 @@ spawn_docker_host() {
   esac
   done  
   set -- "${POSITIONAL_ARGS[@]}" # restore positional parameters
-  echo "Spawning $dname($dtype)" >&2 
+  echo "Spawning $dname($dtype)" >&2
+  bgp=${bgp:-no}
+  bpath=${bpath:-""}
+  bgp_conf=${bgp_conf:-""}
   if [[ "$dtype" == "loxilb" ]]; then
     loxilbs+=("$dname")
+    pick_config=${pick_config:-no}
     if [[ "$pick_config" == "yes" ]]; then
         echo "$dname will pick config from $(pwd)/${dname}_config"
         loxilb_config="-v $(pwd)/${dname}_config:/etc/loxilb/"
@@ -102,6 +110,7 @@ spawn_docker_host() {
         bgp_conf="-v $bpath:/etc/gobgp/"
       fi
     fi
+    bgp_opts=${bgp_opts:-""}
     if [[ ! -z ${ka+x} ]]; then
       sudo mkdir -p /etc/shared/$dname/
       if [[ "$ka" == "in" ]];then
@@ -112,6 +121,7 @@ spawn_docker_host() {
       fi
       docker run -u root --cap-add SYS_ADMIN   --restart unless-stopped --privileged -dt --entrypoint /bin/bash $bgp_conf -v /dev/log:/dev/log -v /etc/shared/$dname:/etc/shared $loxilb_config $ka_conf --name $dname $lxdocker
       get_llb_peerIP $dname
+      bgp_opts=${bgp_opts:-""}
       docker exec -dt $dname /root/loxilb-io/loxilb/loxilb $bgp_opts $cluster_opts $ka_opts
 
       if [[ "$ka" == "out" ]];then
@@ -123,6 +133,7 @@ spawn_docker_host() {
         docker run -u root --cap-add SYS_ADMIN   --restart unless-stopped --privileged -dit --network=container:$dname $ka_conf -v /etc/shared/$dname:/etc/shared --name ka_$dname osixia/keepalived:2.0.20
       fi
     else
+      loxilb_config=${loxilb_config:-""}
       docker run -u root --cap-add SYS_ADMIN   --restart unless-stopped --privileged -dt --entrypoint /bin/bash $bgp_conf -v /dev/log:/dev/log $loxilb_config --name $dname $lxdocker $bgp_opts
       docker exec -dt $dname /root/loxilb-io/loxilb/loxilb $bgp_opts $cluster_opts
     fi
@@ -152,7 +163,7 @@ spawn_docker_host() {
   $hexec $dname ifconfig lo up
   $hexec $dname sysctl net.ipv6.conf.all.disable_ipv6=1 2>&1 >> /dev/null
   #$hexec $dname sysctl net.ipv4.conf.all.arp_accept=1 2>&1 >> /dev/null
-  $hexec $dname sysctl net.ipv4.conf.eth0.arp_ignore=2 2>&1 >> /dev/null
+  $hexec $dname sysctl net.ipv4.conf.eth0.arp_ignore=2 2>&1 >> /dev/null || true
 }
 
 ## Get loxilb peer docker IP
@@ -181,10 +192,8 @@ get_llb_peerIP() {
 ## Deletes a docker host
 ## arg1 - hostname 
 delete_docker_host() {
-  id=`docker ps -f name=$1| grep -w $1 | cut  -d " "  -f 1 | grep -iv  "CONTAINER"`
-  if [ "$id" != "" ]; then
-    docker stop $1 2>&1 >> /dev/null
-    hd="true"
+  if docker stop $1
+  then
     ka=`docker ps -f name=ka_$1| grep -w ka_$1 | cut  -d " "  -f 1 | grep -iv  "CONTAINER"`
     loxilbs=( "${loxilbs[@]/$1}" )
     if [ "$ka" != "" ]; then
@@ -196,9 +205,7 @@ delete_docker_host() {
     $hns del $1
     sudo rm -fr "$hexist/$1" 2>&1 >> /dev/null
   fi
-  if [ "$id" != "" ]; then
-    docker rm $1 2>&1 >> /dev/null
-  fi
+  docker rm $1
 }
 
 ## Connects two docker hosts
@@ -206,6 +213,8 @@ delete_docker_host() {
 ## arg2 - hostname2 
 ## arg3 - mtu
 connect_docker_hosts() {
+  set -euo pipefail
+
   link1=e$1$2
   link2=e$2$1
 
@@ -214,7 +223,10 @@ connect_docker_hosts() {
     mtu=$3
   fi
 
-  #echo $link1 $link2
+  # For debugging:
+  sudo ip -netns $1 link
+  sudo ip -netns $2 link
+
   sudo ip -n $1 link add $link1 type veth peer name $link2 netns $2
   sudo ip -n $1 link set $link1 mtu $mtu up
   sudo ip -n $2 link set $link2 mtu $mtu up
@@ -331,6 +343,7 @@ config_docker_host() {
     echo "Check port-type"
   fi
 
+  gw=${gw:-""}
   if [[ "$gw" != "" ]]; then
     sudo ip -n $h1 route del default 2>&1 >> /dev/null
     sudo ip -n $h1 route add default via $gw
