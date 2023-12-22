@@ -33,7 +33,8 @@ $hexec l3ep1 \
     &
 # $! only gives use the pid of sudo.
 
-sleep 1 # await netserver, avoid 'could not establish control connection'
+# await netserver, avoid 'could not establish control connection'
+sleep 90
 
 for ((i=0,tport=12866;i<threads;i++,tport++))
 do
