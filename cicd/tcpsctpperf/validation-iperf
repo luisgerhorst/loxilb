@@ -24,30 +24,13 @@ $hexec l3ep1 \
   &
 # $! only gives use the pid of sudo.
 
-sleep 1
+sleep 15
 
-for i in $(seq 0 9)
-do
-  if test -e "${dst}client.csv"
-  then
-    # Will be 1..9
-    mv -f "${dst}client.csv" "${dst}client.retry-$i.csv"
-    mv -f "${dst}client.stderr" "${dst}client.retry-$i.stderr"
-  fi
-
-  # --sum-only is not supported with CSV reportstyle.
-  $hexec l3h1 \
-    iperf -c 20.20.20.1 -t $time -p 12865 -P $threads --reportstyle c \
-    > "${dst}client.csv" \
-    2> "${dst}client.stderr"
-
-  if ! grep 'connect failed: Operation now in progress' "${dst}client.stderr"
-  then
-    break
-  fi
-
-  sleep 15
-done
+# --sum-only is not supported with CSV reportstyle.
+$hexec l3h1 \
+  iperf -c 20.20.20.1 -t $time -p 12865 -P $threads --reportstyle c \
+  > "${dst}client.csv" \
+  2> "${dst}client.stderr"
 
 cat "${dst}client.stderr" 1>&2
 
