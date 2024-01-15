@@ -54,6 +54,7 @@ http {
 " > $tmpd/nginx.conf
 
     $hexec l3ep$i \
+        taskset --cpu-list $(expr $i '-' 1) \
         nginx -p $tmpd -c nginx.conf \
         > ${dst}nginx.log \
         &
@@ -71,6 +72,7 @@ $hexec l3h1 \
     curl $url | wc --bytes
 
 $hexec l3h1 \
+    taskset --cpu-list $OSE_LOXILB_SERVERS-$(expr $OSE_LOXILB_SERVERS '-' 1 '+' $threads) \
     wrk --threads $threads --duration ${time}s --connections $OSE_WRK_CONNECTIONS --rate $OSE_WRK_RATE --latency $url \
     > ${dst}latency.log
 ec=$?
