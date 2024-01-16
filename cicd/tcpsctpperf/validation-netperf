@@ -28,6 +28,7 @@ export OSE_LATENCY_PAYLOAD_SIZE=${OSE_LATENCY_PAYLOAD_SIZE:-1024}
 # Run as nobody to prevent /dev/null corruption
 # (https://github.com/HewlettPackard/netperf/issues/26).
 $hexec l3ep1 \
+    taskset --cpu-list $threads-$(expr $threads + $threads - 1) \
     sudo -u nobody \
     netserver -D -4 -p 12865 \
     &
@@ -39,6 +40,7 @@ sleep 90
 for ((i=0,tport=12866;i<threads;i++,tport++))
 do
     $hexec l3h1 \
+        taskset --cpu-list $i \
         netperf -L 10.10.10.1 -H 20.20.20.1 -t $OSE_NETPERF_TEST -l $time \
         -- -P ,$tport -r ${OSE_LATENCY_REQ_PAYLOAD_SIZE},$OSE_LATENCY_PAYLOAD_SIZE \
         > ${dst}client.$i.log \

@@ -19,6 +19,7 @@ cleanup() {
 trap cleanup EXIT
 
 $hexec l3ep1 \
+    taskset --cpu-list $threads-$(expr $threads + $threads - 1) \
     iperf3 --server -p 12865 --json \
     > "${dst}server.json" \
     &
@@ -27,6 +28,7 @@ $hexec l3ep1 \
 sleep 1
 
 $hexec l3h1 \
+    taskset --cpu-list 0-$(expr $threads - 1) \
     iperf3 -c 20.20.20.1 -t $time -p 12865 -P $threads --json \
     > "${dst}client.json"
 

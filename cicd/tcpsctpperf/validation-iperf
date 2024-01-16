@@ -19,6 +19,7 @@ cleanup() {
 trap cleanup EXIT
 
 $hexec l3ep1 \
+  taskset --cpu-list $threads-$(expr $threads + $threads - 1) \
   iperf -s -p 12865 --reportstyle c \
   > "${dst}server.csv" \
   &
@@ -28,6 +29,7 @@ sleep 15
 
 # --sum-only is not supported with CSV reportstyle.
 $hexec l3h1 \
+  taskset --cpu-list 0-$(expr $threads - 1) \
   iperf -c 20.20.20.1 -t $time -p 12865 -P $threads --reportstyle c \
   > "${dst}client.csv" \
   2> "${dst}client.stderr"

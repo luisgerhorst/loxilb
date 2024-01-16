@@ -47,6 +47,7 @@ spawn_docker_host() {
   local kpath
   local ka
   local bgp
+  local cpuset_cpus_arg
   while [[ $# -gt 0 ]]; do
   case "$1" in
     -t | --dock-type )
@@ -82,6 +83,10 @@ spawn_docker_host() {
       fi
       shift 2
       ;;
+    -s | --cpuset-cpus )
+      cpuset_cpus_arg="--cpuset-cpus $2"
+      shift 2
+      ;;
     -*|--*)
       echo "Unknown option $1"
       exit
@@ -89,7 +94,9 @@ spawn_docker_host() {
   esac
   done  
   set -- "${POSITIONAL_ARGS[@]}" # restore positional parameters
-  echo "Spawning $dname($dtype)" >&2 
+  echo "Spawning $dname($dtype)" >&2
+  docker_run="docker run -u root --cap-add SYS_ADMIN --restart unless-stopped $cpuset_cpus_arg"
+  docker_exec_lb="docker exec -dt $dname /root/loxilb-io/loxilb/loxilb"
   if [[ "$dtype" == "loxilb" ]]; then
     loxilbs+=("$dname")
     if [[ "$pick_config" == "yes" ]]; then
@@ -110,9 +117,9 @@ spawn_docker_host() {
             ka_conf="-v $kpath:/etc/keepalived/" 
         fi
       fi
-      docker run -u root --cap-add SYS_ADMIN   --restart unless-stopped --privileged -dt --entrypoint /bin/bash $bgp_conf -v /dev/log:/dev/log -v /etc/shared/$dname:/etc/shared $loxilb_config $ka_conf --name $dname $lxdocker
+      $docker_run --privileged -dt --entrypoint /bin/bash $bgp_conf -v /dev/log:/dev/log -v /etc/shared/$dname:/etc/shared $loxilb_config $ka_conf --name $dname $lxdocker
       get_llb_peerIP $dname
-      docker exec -dt $dname /root/loxilb-io/loxilb/loxilb $bgp_opts $cluster_opts $ka_opts
+      $docker_exec_lb $bgp_opts $cluster_opts $ka_opts
 
       if [[ "$ka" == "out" ]];then
         ka_opts="-k out"
@@ -120,20 +127,20 @@ spawn_docker_host() {
             ka_conf="-v $kpath:/container/service/keepalived/assets/" 
         fi
 
-        docker run -u root --cap-add SYS_ADMIN   --restart unless-stopped --privileged -dit --network=container:$dname $ka_conf -v /etc/shared/$dname:/etc/shared --name ka_$dname osixia/keepalived:2.0.20
+        $docker_run --privileged -dit --network=container:$dname $ka_conf -v /etc/shared/$dname:/etc/shared --name ka_$dname osixia/keepalived:2.0.20
       fi
     else
-      docker run -u root --cap-add SYS_ADMIN   --restart unless-stopped --privileged -dt --entrypoint /bin/bash $bgp_conf -v /dev/log:/dev/log $loxilb_config --name $dname $lxdocker $bgp_opts
-      docker exec -dt $dname /root/loxilb-io/loxilb/loxilb $bgp_opts $cluster_opts
+      $docker_run --privileged -dt --entrypoint /bin/bash $bgp_conf -v /dev/log:/dev/log $loxilb_config --name $dname $lxdocker $bgp_opts
+      $docker_exec_lb $bgp_opts $cluster_opts
     fi
   elif [[ "$dtype" == "host" ]]; then
     if [[ ! -z "$bpath" ]]; then
       bgp_conf="--volume $bpath:/etc/quagga" 
     fi
     if [[ "$bgp" == "yes" || ! -z "$bpath" ]]; then
-      docker run -u root --cap-add SYS_ADMIN  --restart unless-stopped --privileged -dit $bgp_conf --name $dname ewindisch/quagga
+      $docker_run --privileged -dit $bgp_conf --name $dname ewindisch/quagga
     else
-      docker run -u root --cap-add SYS_ADMIN -dit --name $dname eyes852/ubuntu-iperf-test:0.5
+      docker run -u root --cap-add SYS_ADMIN $cpuset_cpus_arg -dit --name $dname eyes852/ubuntu-iperf-test:0.5
     fi
   fi
 
