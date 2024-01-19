@@ -9,6 +9,7 @@ set -u
 threads=$1
 time=$2
 dst="$3"
+burst_len="$4"
 
 cleanup() {
     set +e
@@ -73,13 +74,29 @@ url=http://20.20.20.1:14000/head-urandom
 $hexec l3h1 \
     curl $url | wc --bytes
 
-$hexec l3h1 \
-    $OSE_PERF_STAT \
-    taskset --cpu-list $OSE_LOXILB_SERVERS-$(expr $OSE_LOXILB_SERVERS '-' 1 '+' $threads) \
-    wrk $OSE_WRK_EXTRA_FLAGS --threads $threads --duration ${time}s --connections $OSE_WRK_CONNECTIONS --rate $OSE_WRK_RATE --latency $url \
-    > ${dst}latency.log
-ec=$?
-set -e
+sync
+echo 3 | sudo tee /proc/sys/vm/drop_caches > /dev/null
+sleep 1
+for burst_pos in $(seq 0 $((burst_len - 1)))
+do
+    echo -n "$OSE_WRK_RATE" > ${dst}${burst_pos}.OSE_WRK_RATE
+
+    set +e
+    $hexec l3h1 \
+        $OSE_PERF_STAT --output ${dst}${burst_pos}.perf \
+        taskset --cpu-list $OSE_LOXILB_SERVERS-$(expr $OSE_LOXILB_SERVERS '-' 1 '+' $threads) \
+        wrk $OSE_WRK_EXTRA_FLAGS \
+        --threads $threads --duration ${time}s \
+        --connections $OSE_WRK_CONNECTIONS --rate $OSE_WRK_RATE --latency $url \
+        > ${dst}${burst_pos}.latency.log
+    ec=$?
+    set -e
+
+    if [ $ec != 0 ]
+    then
+        break
+    fi
+done
 
 sudo pkill -SIGTERM nginx
 wait
