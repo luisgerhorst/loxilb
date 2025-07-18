@@ -7,10 +7,12 @@ package models
 
 import (
 	"context"
+	"encoding/json"
 
 	"github.com/go-openapi/errors"
 	"github.com/go-openapi/strfmt"
 	"github.com/go-openapi/swag"
+	"github.com/go-openapi/validate"
 )
 
 // MirrorEntry mirror entry
@@ -19,18 +21,24 @@ import (
 type MirrorEntry struct {
 
 	// Mirror name
-	MirrorIdent string `json:"mirrorIdent,omitempty"`
+	// Required: true
+	MirrorIdent *string `json:"mirrorIdent"`
 
 	// mirror info
 	MirrorInfo *MirrorEntryMirrorInfo `json:"mirrorInfo,omitempty"`
 
 	// target object
-	TargetObject *MirrorEntryTargetObject `json:"targetObject,omitempty"`
+	// Required: true
+	TargetObject *MirrorEntryTargetObject `json:"targetObject"`
 }
 
 // Validate validates this mirror entry
 func (m *MirrorEntry) Validate(formats strfmt.Registry) error {
 	var res []error
+
+	if err := m.validateMirrorIdent(formats); err != nil {
+		res = append(res, err)
+	}
 
 	if err := m.validateMirrorInfo(formats); err != nil {
 		res = append(res, err)
@@ -43,6 +51,15 @@ func (m *MirrorEntry) Validate(formats strfmt.Registry) error {
 	if len(res) > 0 {
 		return errors.CompositeValidationError(res...)
 	}
+	return nil
+}
+
+func (m *MirrorEntry) validateMirrorIdent(formats strfmt.Registry) error {
+
+	if err := validate.Required("mirrorIdent", "body", m.MirrorIdent); err != nil {
+		return err
+	}
+
 	return nil
 }
 
@@ -66,8 +83,9 @@ func (m *MirrorEntry) validateMirrorInfo(formats strfmt.Registry) error {
 }
 
 func (m *MirrorEntry) validateTargetObject(formats strfmt.Registry) error {
-	if swag.IsZero(m.TargetObject) { // not required
-		return nil
+
+	if err := validate.Required("targetObject", "body", m.TargetObject); err != nil {
+		return err
 	}
 
 	if m.TargetObject != nil {
@@ -169,7 +187,8 @@ type MirrorEntryMirrorInfo struct {
 	// mirror tunnel-id. For ERSPAN we may need to send tunnelled mirror traffic
 	TunnelID int64 `json:"tunnelID,omitempty"`
 
-	// One of MirrTypeSpan, MirrTypeRspan or MirrTypeErspan
+	// One of MirrTypeSpan, MirrTypeRspan or MirrTypeErspan(0-MirrTypeSpan, 1-MirrTypeRspan, 2-MirrTypeErspan)
+	// Enum: [0 1 2]
 	Type int64 `json:"type,omitempty"`
 
 	// For RSPAN we may need to send tagged mirror traffic
@@ -178,6 +197,48 @@ type MirrorEntryMirrorInfo struct {
 
 // Validate validates this mirror entry mirror info
 func (m *MirrorEntryMirrorInfo) Validate(formats strfmt.Registry) error {
+	var res []error
+
+	if err := m.validateType(formats); err != nil {
+		res = append(res, err)
+	}
+
+	if len(res) > 0 {
+		return errors.CompositeValidationError(res...)
+	}
+	return nil
+}
+
+var mirrorEntryMirrorInfoTypeTypePropEnum []interface{}
+
+func init() {
+	var res []int64
+	if err := json.Unmarshal([]byte(`[0,1,2]`), &res); err != nil {
+		panic(err)
+	}
+	for _, v := range res {
+		mirrorEntryMirrorInfoTypeTypePropEnum = append(mirrorEntryMirrorInfoTypeTypePropEnum, v)
+	}
+}
+
+// prop value enum
+func (m *MirrorEntryMirrorInfo) validateTypeEnum(path, location string, value int64) error {
+	if err := validate.EnumCase(path, location, value, mirrorEntryMirrorInfoTypeTypePropEnum, true); err != nil {
+		return err
+	}
+	return nil
+}
+
+func (m *MirrorEntryMirrorInfo) validateType(formats strfmt.Registry) error {
+	if swag.IsZero(m.Type) { // not required
+		return nil
+	}
+
+	// value enum
+	if err := m.validateTypeEnum("mirrorInfo"+"."+"type", "body", m.Type); err != nil {
+		return err
+	}
+
 	return nil
 }
 
@@ -210,14 +271,47 @@ func (m *MirrorEntryMirrorInfo) UnmarshalBinary(b []byte) error {
 type MirrorEntryTargetObject struct {
 
 	// Target Attachment
-	Attachment int64 `json:"attachment,omitempty"`
+	// Required: true
+	Attachment *int64 `json:"attachment"`
 
 	// Target Names
-	MirrObjName string `json:"mirrObjName,omitempty"`
+	// Required: true
+	MirrObjName *string `json:"mirrObjName"`
 }
 
 // Validate validates this mirror entry target object
 func (m *MirrorEntryTargetObject) Validate(formats strfmt.Registry) error {
+	var res []error
+
+	if err := m.validateAttachment(formats); err != nil {
+		res = append(res, err)
+	}
+
+	if err := m.validateMirrObjName(formats); err != nil {
+		res = append(res, err)
+	}
+
+	if len(res) > 0 {
+		return errors.CompositeValidationError(res...)
+	}
+	return nil
+}
+
+func (m *MirrorEntryTargetObject) validateAttachment(formats strfmt.Registry) error {
+
+	if err := validate.Required("targetObject"+"."+"attachment", "body", m.Attachment); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (m *MirrorEntryTargetObject) validateMirrObjName(formats strfmt.Registry) error {
+
+	if err := validate.Required("targetObject"+"."+"mirrObjName", "body", m.MirrObjName); err != nil {
+		return err
+	}
+
 	return nil
 }
 

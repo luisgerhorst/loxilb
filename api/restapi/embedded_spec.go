@@ -37,6 +37,444 @@ func init() {
   "host": "0.0.0.0:11111",
   "basePath": "/netlox/v1",
   "paths": {
+    "/auth/login": {
+      "post": {
+        "security": [],
+        "description": "Authenticates a user and returns a JWT token if the credentials are valid.",
+        "consumes": [
+          "application/json"
+        ],
+        "produces": [
+          "application/json"
+        ],
+        "tags": [
+          "auth"
+        ],
+        "summary": "User login",
+        "parameters": [
+          {
+            "description": "User credentials",
+            "name": "user",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/User"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "schema": {
+              "$ref": "#/definitions/LoginResponse"
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "schema": {
+              "$ref": "#/definitions/ErrorResponse"
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "schema": {
+              "$ref": "#/definitions/ErrorResponse"
+            }
+          },
+          "500": {
+            "description": "Internal Server Error",
+            "schema": {
+              "$ref": "#/definitions/ErrorResponse"
+            }
+          }
+        }
+      }
+    },
+    "/auth/logout": {
+      "post": {
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "description": "Invalidates the user's token and logs them out.",
+        "consumes": [
+          "application/json"
+        ],
+        "produces": [
+          "application/json"
+        ],
+        "tags": [
+          "auth"
+        ],
+        "summary": "User logout",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "schema": {
+              "$ref": "#/definitions/MessageResponse"
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "schema": {
+              "$ref": "#/definitions/ErrorResponse"
+            }
+          },
+          "500": {
+            "description": "Internal Server Error",
+            "schema": {
+              "$ref": "#/definitions/ErrorResponse"
+            }
+          }
+        }
+      }
+    },
+    "/auth/users": {
+      "get": {
+        "description": "Retrieves all users from the database and returns them as a JSON response.",
+        "produces": [
+          "application/json"
+        ],
+        "tags": [
+          "users"
+        ],
+        "summary": "Fetch all users",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "schema": {
+              "type": "array",
+              "items": {
+                "$ref": "#/definitions/User"
+              }
+            }
+          },
+          "500": {
+            "description": "Internal Server Error",
+            "schema": {
+              "$ref": "#/definitions/ErrorResponse"
+            }
+          }
+        }
+      },
+      "post": {
+        "security": [],
+        "description": "Creates a new user in the system",
+        "consumes": [
+          "application/json"
+        ],
+        "produces": [
+          "application/json"
+        ],
+        "tags": [
+          "users"
+        ],
+        "summary": "Create a new user",
+        "parameters": [
+          {
+            "description": "User data",
+            "name": "user",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/User"
+            }
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": "Created",
+            "schema": {
+              "$ref": "#/definitions/User"
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "schema": {
+              "$ref": "#/definitions/ErrorResponse"
+            }
+          },
+          "500": {
+            "description": "Internal Server Error",
+            "schema": {
+              "$ref": "#/definitions/ErrorResponse"
+            }
+          }
+        }
+      }
+    },
+    "/auth/users/{id}": {
+      "put": {
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "description": "Updates an existing user with the provided JSON payload",
+        "consumes": [
+          "application/json"
+        ],
+        "produces": [
+          "application/json"
+        ],
+        "tags": [
+          "users"
+        ],
+        "summary": "Update user",
+        "parameters": [
+          {
+            "type": "integer",
+            "description": "User ID",
+            "name": "id",
+            "in": "path",
+            "required": true
+          },
+          {
+            "description": "User data",
+            "name": "user",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/User"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "schema": {
+              "$ref": "#/definitions/User"
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "schema": {
+              "$ref": "#/definitions/ErrorResponse"
+            }
+          },
+          "500": {
+            "description": "Internal Server Error",
+            "schema": {
+              "$ref": "#/definitions/ErrorResponse"
+            }
+          }
+        }
+      },
+      "delete": {
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "description": "Deletes a user by its ID",
+        "consumes": [
+          "application/json"
+        ],
+        "produces": [
+          "application/json"
+        ],
+        "tags": [
+          "users"
+        ],
+        "summary": "Delete user",
+        "parameters": [
+          {
+            "type": "integer",
+            "description": "User ID",
+            "name": "id",
+            "in": "path",
+            "required": true
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "schema": {
+              "$ref": "#/definitions/MessageResponse"
+            }
+          },
+          "500": {
+            "description": "Internal Server Error",
+            "schema": {
+              "$ref": "#/definitions/ErrorResponse"
+            }
+          }
+        }
+      }
+    },
+    "/config/bfd": {
+      "post": {
+        "description": "Create vlan interface in the device",
+        "summary": "Create vlan interface in the device",
+        "parameters": [
+          {
+            "description": "Attributes for Vlan Interface",
+            "name": "attr",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/BfdEntry"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "OK"
+          },
+          "400": {
+            "description": "Malformed arguments for API call",
+            "schema": {
+              "$ref": "#/definitions/Error"
+            }
+          },
+          "401": {
+            "description": "Invalid authentication credentials",
+            "schema": {
+              "$ref": "#/definitions/Error"
+            }
+          },
+          "403": {
+            "description": "Capacity insufficient",
+            "schema": {
+              "$ref": "#/definitions/Error"
+            }
+          },
+          "404": {
+            "description": "Resource not found",
+            "schema": {
+              "$ref": "#/definitions/Error"
+            }
+          },
+          "409": {
+            "description": "Resource Conflict. BFD session not found",
+            "schema": {
+              "$ref": "#/definitions/Error"
+            }
+          },
+          "500": {
+            "description": "Internal service error",
+            "schema": {
+              "$ref": "#/definitions/Error"
+            }
+          },
+          "503": {
+            "description": "Maintenance mode",
+            "schema": {
+              "$ref": "#/definitions/Error"
+            }
+          }
+        }
+      }
+    },
+    "/config/bfd/all": {
+      "get": {
+        "description": "Get BFD session inforrmation",
+        "summary": "Get BFD session inforrmation in the device",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "schema": {
+              "type": "object",
+              "properties": {
+                "Attr": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/definitions/BfdGetEntry"
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Invalid authentication credentials",
+            "schema": {
+              "$ref": "#/definitions/Error"
+            }
+          },
+          "500": {
+            "description": "Internal service error",
+            "schema": {
+              "$ref": "#/definitions/Error"
+            }
+          },
+          "503": {
+            "description": "Maintenance mode",
+            "schema": {
+              "$ref": "#/definitions/Error"
+            }
+          }
+        }
+      }
+    },
+    "/config/bfd/remoteIP/{remote_ip}": {
+      "delete": {
+        "description": "Delete a BFD session",
+        "summary": "Delete a BFD session",
+        "parameters": [
+          {
+            "type": "string",
+            "description": "Remote IP address",
+            "name": "remote_ip",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "string",
+            "description": "Cluster instance name",
+            "name": "instance",
+            "in": "query"
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "OK"
+          },
+          "400": {
+            "description": "Malformed arguments for API call",
+            "schema": {
+              "$ref": "#/definitions/Error"
+            }
+          },
+          "401": {
+            "description": "Invalid authentication credentials",
+            "schema": {
+              "$ref": "#/definitions/Error"
+            }
+          },
+          "403": {
+            "description": "Capacity insufficient",
+            "schema": {
+              "$ref": "#/definitions/Error"
+            }
+          },
+          "404": {
+            "description": "Resource not found",
+            "schema": {
+              "$ref": "#/definitions/Error"
+            }
+          },
+          "409": {
+            "description": "Resource Conflict. BFD session already exists",
+            "schema": {
+              "$ref": "#/definitions/Error"
+            }
+          },
+          "500": {
+            "description": "Internal service error",
+            "schema": {
+              "$ref": "#/definitions/Error"
+            }
+          },
+          "503": {
+            "description": "Maintenance mode",
+            "schema": {
+              "$ref": "#/definitions/Error"
+            }
+          }
+        }
+      }
+    },
     "/config/bgp/global": {
       "post": {
         "description": "Adds a BGP global config",
@@ -93,7 +531,7 @@ func init() {
             }
           },
           "503": {
-            "description": "Maintanence mode",
+            "description": "Maintenance mode",
             "schema": {
               "$ref": "#/definitions/Error"
             }
@@ -157,7 +595,74 @@ func init() {
             }
           },
           "503": {
-            "description": "Maintanence mode",
+            "description": "Maintenance mode",
+            "schema": {
+              "$ref": "#/definitions/Error"
+            }
+          }
+        }
+      }
+    },
+    "/config/bgp/neigh/all": {
+      "get": {
+        "description": "Get the all of BGP Neighbor",
+        "summary": "Get the all of BGP Neighbor",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "schema": {
+              "type": "object",
+              "properties": {
+                "bgpNeiAttr": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/definitions/BGPNeighGetEntry"
+                  }
+                }
+              }
+            }
+          },
+          "204": {
+            "description": "OK"
+          },
+          "400": {
+            "description": "Malformed arguments for API call",
+            "schema": {
+              "$ref": "#/definitions/Error"
+            }
+          },
+          "401": {
+            "description": "Invalid authentication credentials",
+            "schema": {
+              "$ref": "#/definitions/Error"
+            }
+          },
+          "403": {
+            "description": "Capacity insufficient",
+            "schema": {
+              "$ref": "#/definitions/Error"
+            }
+          },
+          "404": {
+            "description": "Resource not found",
+            "schema": {
+              "$ref": "#/definitions/Error"
+            }
+          },
+          "409": {
+            "description": "Resource Conflict. VLAN already exists OR dependency VRF/VNET not found",
+            "schema": {
+              "$ref": "#/definitions/Error"
+            }
+          },
+          "500": {
+            "description": "Internal service error",
+            "schema": {
+              "$ref": "#/definitions/Error"
+            }
+          },
+          "503": {
+            "description": "Maintenance mode",
             "schema": {
               "$ref": "#/definitions/Error"
             }
@@ -226,7 +731,520 @@ func init() {
             }
           },
           "503": {
-            "description": "Maintanence mode",
+            "description": "Maintenance mode",
+            "schema": {
+              "$ref": "#/definitions/Error"
+            }
+          }
+        }
+      }
+    },
+    "/config/bgp/policy/apply": {
+      "post": {
+        "description": "Apply BGP Policy in neighbor",
+        "summary": "Apply BGP Policy in neighbor",
+        "parameters": [
+          {
+            "description": "Attributes of bgp neighbor",
+            "name": "attr",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/BGPApplyPolicyToNeighborMod"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "OK"
+          },
+          "400": {
+            "description": "Malformed arguments for API call",
+            "schema": {
+              "$ref": "#/definitions/Error"
+            }
+          },
+          "401": {
+            "description": "Invalid authentication credentials",
+            "schema": {
+              "$ref": "#/definitions/Error"
+            }
+          },
+          "403": {
+            "description": "Capacity insufficient",
+            "schema": {
+              "$ref": "#/definitions/Error"
+            }
+          },
+          "404": {
+            "description": "Resource not found",
+            "schema": {
+              "$ref": "#/definitions/Error"
+            }
+          },
+          "409": {
+            "description": "Resource Conflict.",
+            "schema": {
+              "$ref": "#/definitions/Error"
+            }
+          },
+          "500": {
+            "description": "Internal service error",
+            "schema": {
+              "$ref": "#/definitions/Error"
+            }
+          },
+          "503": {
+            "description": "Maintenance mode",
+            "schema": {
+              "$ref": "#/definitions/Error"
+            }
+          }
+        }
+      },
+      "delete": {
+        "description": "Delete BGP Policy in neighbor. It don't need \"routeAction\" in the attr body",
+        "summary": "Delete BGP Policy in neighbor",
+        "parameters": [
+          {
+            "description": "Attributes of bgp neighbor",
+            "name": "attr",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/BGPApplyPolicyToNeighborMod"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "OK"
+          },
+          "400": {
+            "description": "Malformed arguments for API call",
+            "schema": {
+              "$ref": "#/definitions/Error"
+            }
+          },
+          "401": {
+            "description": "Invalid authentication credentials",
+            "schema": {
+              "$ref": "#/definitions/Error"
+            }
+          },
+          "403": {
+            "description": "Capacity insufficient",
+            "schema": {
+              "$ref": "#/definitions/Error"
+            }
+          },
+          "404": {
+            "description": "Resource not found",
+            "schema": {
+              "$ref": "#/definitions/Error"
+            }
+          },
+          "409": {
+            "description": "Resource Conflict. Neigh already exists",
+            "schema": {
+              "$ref": "#/definitions/Error"
+            }
+          },
+          "500": {
+            "description": "Internal service error",
+            "schema": {
+              "$ref": "#/definitions/Error"
+            }
+          },
+          "503": {
+            "description": "Maintenance mode",
+            "schema": {
+              "$ref": "#/definitions/Error"
+            }
+          }
+        }
+      }
+    },
+    "/config/bgp/policy/definedsets/{defineset_type}": {
+      "post": {
+        "description": "Adds a BGP definedsets for making Policy",
+        "summary": "Adds a BGP  definedsets for making Policy",
+        "parameters": [
+          {
+            "type": "string",
+            "description": "defineset type one of prefix/neighbor/community/extcommunity/aspath/largecommunity",
+            "name": "defineset_type",
+            "in": "path",
+            "required": true
+          },
+          {
+            "description": "Attributes of bgp neighbor",
+            "name": "attr",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/BGPPolicyDefinedSetsMod"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "OK"
+          },
+          "400": {
+            "description": "Malformed arguments for API call",
+            "schema": {
+              "$ref": "#/definitions/Error"
+            }
+          },
+          "401": {
+            "description": "Invalid authentication credentials",
+            "schema": {
+              "$ref": "#/definitions/Error"
+            }
+          },
+          "403": {
+            "description": "Capacity insufficient",
+            "schema": {
+              "$ref": "#/definitions/Error"
+            }
+          },
+          "404": {
+            "description": "Resource not found",
+            "schema": {
+              "$ref": "#/definitions/Error"
+            }
+          },
+          "409": {
+            "description": "Resource Conflict.",
+            "schema": {
+              "$ref": "#/definitions/Error"
+            }
+          },
+          "500": {
+            "description": "Internal service error",
+            "schema": {
+              "$ref": "#/definitions/Error"
+            }
+          },
+          "503": {
+            "description": "Maintenance mode",
+            "schema": {
+              "$ref": "#/definitions/Error"
+            }
+          }
+        }
+      }
+    },
+    "/config/bgp/policy/definedsets/{defineset_type}/{type_name}": {
+      "get": {
+        "description": "Get the all of BGP, prefix/neighbor/community/extcommunity/aspath/largecommunity",
+        "summary": "Get the all of BGP definedsets",
+        "parameters": [
+          {
+            "type": "string",
+            "description": "defineset type one of prefix/neighbor/community/extcommunity/aspath/largecommunity",
+            "name": "defineset_type",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "string",
+            "description": "type name",
+            "name": "type_name",
+            "in": "path",
+            "required": true
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "schema": {
+              "type": "object",
+              "properties": {
+                "definedsetsAttr": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/definitions/BGPPolicyDefinedSetGetEntry"
+                  }
+                }
+              }
+            }
+          },
+          "204": {
+            "description": "OK"
+          },
+          "400": {
+            "description": "Malformed arguments for API call",
+            "schema": {
+              "$ref": "#/definitions/Error"
+            }
+          },
+          "401": {
+            "description": "Invalid authentication credentials",
+            "schema": {
+              "$ref": "#/definitions/Error"
+            }
+          },
+          "403": {
+            "description": "Capacity insufficient",
+            "schema": {
+              "$ref": "#/definitions/Error"
+            }
+          },
+          "404": {
+            "description": "Resource not found",
+            "schema": {
+              "$ref": "#/definitions/Error"
+            }
+          },
+          "409": {
+            "description": "Resource Conflict. VLAN already exists OR dependency VRF/VNET not found",
+            "schema": {
+              "$ref": "#/definitions/Error"
+            }
+          },
+          "500": {
+            "description": "Internal service error",
+            "schema": {
+              "$ref": "#/definitions/Error"
+            }
+          },
+          "503": {
+            "description": "Maintenance mode",
+            "schema": {
+              "$ref": "#/definitions/Error"
+            }
+          }
+        }
+      },
+      "delete": {
+        "description": "Delete a BGP definedsets",
+        "summary": "Delete a BGP definedsets",
+        "parameters": [
+          {
+            "type": "string",
+            "description": "defineset type one of prefix/neighbor/community/extcommunity/aspath/largecommunity",
+            "name": "defineset_type",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "string",
+            "description": "type name",
+            "name": "type_name",
+            "in": "path",
+            "required": true
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "OK"
+          },
+          "400": {
+            "description": "Malformed arguments for API call",
+            "schema": {
+              "$ref": "#/definitions/Error"
+            }
+          },
+          "401": {
+            "description": "Invalid authentication credentials",
+            "schema": {
+              "$ref": "#/definitions/Error"
+            }
+          },
+          "403": {
+            "description": "Capacity insufficient",
+            "schema": {
+              "$ref": "#/definitions/Error"
+            }
+          },
+          "404": {
+            "description": "Resource not found",
+            "schema": {
+              "$ref": "#/definitions/Error"
+            }
+          },
+          "409": {
+            "description": "Resource Conflict. Neigh already exists",
+            "schema": {
+              "$ref": "#/definitions/Error"
+            }
+          },
+          "500": {
+            "description": "Internal service error",
+            "schema": {
+              "$ref": "#/definitions/Error"
+            }
+          },
+          "503": {
+            "description": "Maintenance mode",
+            "schema": {
+              "$ref": "#/definitions/Error"
+            }
+          }
+        }
+      }
+    },
+    "/config/bgp/policy/definitions": {
+      "post": {
+        "description": "Adds a BGP Policy",
+        "summary": "Adds a BGP Policy",
+        "parameters": [
+          {
+            "description": "Attributes of bgp neighbor",
+            "name": "attr",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/BGPPolicyDefinitionsMod"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "OK"
+          },
+          "400": {
+            "description": "Malformed arguments for API call",
+            "schema": {
+              "$ref": "#/definitions/Error"
+            }
+          },
+          "401": {
+            "description": "Invalid authentication credentials",
+            "schema": {
+              "$ref": "#/definitions/Error"
+            }
+          },
+          "403": {
+            "description": "Capacity insufficient",
+            "schema": {
+              "$ref": "#/definitions/Error"
+            }
+          },
+          "404": {
+            "description": "Resource not found",
+            "schema": {
+              "$ref": "#/definitions/Error"
+            }
+          },
+          "409": {
+            "description": "Resource Conflict.",
+            "schema": {
+              "$ref": "#/definitions/Error"
+            }
+          },
+          "500": {
+            "description": "Internal service error",
+            "schema": {
+              "$ref": "#/definitions/Error"
+            }
+          },
+          "503": {
+            "description": "Maintenance mode",
+            "schema": {
+              "$ref": "#/definitions/Error"
+            }
+          }
+        }
+      }
+    },
+    "/config/bgp/policy/definitions/all": {
+      "get": {
+        "description": "Get BGP Policy definitions",
+        "summary": "Get BGP Policy definitions",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "schema": {
+              "type": "object",
+              "properties": {
+                "bgpPolicyAttr": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/definitions/BGPPolicyDefinitionsMod"
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Invalid authentication credentials",
+            "schema": {
+              "$ref": "#/definitions/Error"
+            }
+          },
+          "500": {
+            "description": "Internal service error",
+            "schema": {
+              "$ref": "#/definitions/Error"
+            }
+          },
+          "503": {
+            "description": "Maintenance mode",
+            "schema": {
+              "$ref": "#/definitions/Error"
+            }
+          }
+        }
+      }
+    },
+    "/config/bgp/policy/definitions/{policy_name}": {
+      "delete": {
+        "description": "Delete a BGP Policy",
+        "summary": "Delete a BGP policy",
+        "parameters": [
+          {
+            "type": "string",
+            "description": "The name of the community",
+            "name": "policy_name",
+            "in": "path",
+            "required": true
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "OK"
+          },
+          "400": {
+            "description": "Malformed arguments for API call",
+            "schema": {
+              "$ref": "#/definitions/Error"
+            }
+          },
+          "401": {
+            "description": "Invalid authentication credentials",
+            "schema": {
+              "$ref": "#/definitions/Error"
+            }
+          },
+          "403": {
+            "description": "Capacity insufficient",
+            "schema": {
+              "$ref": "#/definitions/Error"
+            }
+          },
+          "404": {
+            "description": "Resource not found",
+            "schema": {
+              "$ref": "#/definitions/Error"
+            }
+          },
+          "409": {
+            "description": "Resource Conflict. Neigh already exists",
+            "schema": {
+              "$ref": "#/definitions/Error"
+            }
+          },
+          "500": {
+            "description": "Internal service error",
+            "schema": {
+              "$ref": "#/definitions/Error"
+            }
+          },
+          "503": {
+            "description": "Maintenance mode",
             "schema": {
               "$ref": "#/definitions/Error"
             }
@@ -290,7 +1308,7 @@ func init() {
             }
           },
           "503": {
-            "description": "Maintanence mode",
+            "description": "Maintenance mode",
             "schema": {
               "$ref": "#/definitions/Error"
             }
@@ -330,7 +1348,7 @@ func init() {
             }
           },
           "503": {
-            "description": "Maintanence mode",
+            "description": "Maintenance mode",
             "schema": {
               "$ref": "#/definitions/Error"
             }
@@ -370,7 +1388,7 @@ func init() {
             }
           },
           "503": {
-            "description": "Maintanence mode",
+            "description": "Maintenance mode",
             "schema": {
               "$ref": "#/definitions/Error"
             }
@@ -434,7 +1452,7 @@ func init() {
             }
           },
           "503": {
-            "description": "Maintanence mode",
+            "description": "Maintenance mode",
             "schema": {
               "$ref": "#/definitions/Error"
             }
@@ -474,7 +1492,7 @@ func init() {
             }
           },
           "503": {
-            "description": "Maintanence mode",
+            "description": "Maintenance mode",
             "schema": {
               "$ref": "#/definitions/Error"
             }
@@ -554,7 +1572,71 @@ func init() {
             }
           },
           "503": {
-            "description": "Maintanence mode",
+            "description": "Maintenance mode",
+            "schema": {
+              "$ref": "#/definitions/Error"
+            }
+          }
+        }
+      }
+    },
+    "/config/endpointhoststate": {
+      "post": {
+        "description": "Sets the state of a host which can have multiple endpoints",
+        "summary": "Sets the state of a host",
+        "parameters": [
+          {
+            "description": "Attributes of end point",
+            "name": "attr",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/EndPointHostState"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "OK"
+          },
+          "400": {
+            "description": "Malformed arguments for API call",
+            "schema": {
+              "$ref": "#/definitions/Error"
+            }
+          },
+          "401": {
+            "description": "Invalid authentication credentials",
+            "schema": {
+              "$ref": "#/definitions/Error"
+            }
+          },
+          "403": {
+            "description": "Capacity insufficient",
+            "schema": {
+              "$ref": "#/definitions/Error"
+            }
+          },
+          "404": {
+            "description": "Resource not found",
+            "schema": {
+              "$ref": "#/definitions/Error"
+            }
+          },
+          "409": {
+            "description": "Resource Conflict.",
+            "schema": {
+              "$ref": "#/definitions/Error"
+            }
+          },
+          "500": {
+            "description": "Internal service error",
+            "schema": {
+              "$ref": "#/definitions/Error"
+            }
+          },
+          "503": {
+            "description": "Maintenance mode",
             "schema": {
               "$ref": "#/definitions/Error"
             }
@@ -618,7 +1700,7 @@ func init() {
             }
           },
           "503": {
-            "description": "Maintanence mode",
+            "description": "Maintenance mode",
             "schema": {
               "$ref": "#/definitions/Error"
             }
@@ -658,7 +1740,7 @@ func init() {
             }
           },
           "503": {
-            "description": "Maintanence mode",
+            "description": "Maintenance mode",
             "schema": {
               "$ref": "#/definitions/Error"
             }
@@ -727,7 +1809,7 @@ func init() {
             }
           },
           "503": {
-            "description": "Maintanence mode",
+            "description": "Maintenance mode",
             "schema": {
               "$ref": "#/definitions/Error"
             }
@@ -791,7 +1873,7 @@ func init() {
             }
           },
           "503": {
-            "description": "Maintanence mode",
+            "description": "Maintenance mode",
             "schema": {
               "$ref": "#/definitions/Error"
             }
@@ -898,7 +1980,7 @@ func init() {
             }
           },
           "503": {
-            "description": "Maintanence mode",
+            "description": "Maintenance mode",
             "schema": {
               "$ref": "#/definitions/Error"
             }
@@ -938,7 +2020,7 @@ func init() {
             }
           },
           "503": {
-            "description": "Maintanence mode",
+            "description": "Maintenance mode",
             "schema": {
               "$ref": "#/definitions/Error"
             }
@@ -1002,7 +2084,7 @@ func init() {
             }
           },
           "503": {
-            "description": "Maintanence mode",
+            "description": "Maintenance mode",
             "schema": {
               "$ref": "#/definitions/Error"
             }
@@ -1042,7 +2124,7 @@ func init() {
             }
           },
           "503": {
-            "description": "Maintanence mode",
+            "description": "Maintenance mode",
             "schema": {
               "$ref": "#/definitions/Error"
             }
@@ -1118,7 +2200,7 @@ func init() {
             }
           },
           "503": {
-            "description": "Maintanence mode",
+            "description": "Maintenance mode",
             "schema": {
               "$ref": "#/definitions/Error"
             }
@@ -1185,7 +2267,7 @@ func init() {
             }
           },
           "503": {
-            "description": "Maintanence mode",
+            "description": "Maintenance mode",
             "schema": {
               "$ref": "#/definitions/Error"
             }
@@ -1225,7 +2307,7 @@ func init() {
             }
           },
           "503": {
-            "description": "Maintanence mode",
+            "description": "Maintenance mode",
             "schema": {
               "$ref": "#/definitions/Error"
             }
@@ -1276,7 +2358,102 @@ func init() {
             }
           },
           "503": {
-            "description": "Maintanence mode",
+            "description": "Maintenance mode",
+            "schema": {
+              "$ref": "#/definitions/Error"
+            }
+          }
+        }
+      }
+    },
+    "/config/loadbalancer/externalipaddress/{ip_address}/port/{port}/portmax/{portmax}/protocol/{proto}": {
+      "delete": {
+        "description": "Delete an existing load balancer service with .",
+        "summary": "Delete an existing Load balancer service",
+        "parameters": [
+          {
+            "type": "string",
+            "description": "Attributes for load balance service",
+            "name": "ip_address",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "number",
+            "description": "Attributes for load balance service",
+            "name": "port",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "number",
+            "description": "Attributes for load balance service",
+            "name": "portmax",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "string",
+            "description": "Attributes for load balance service",
+            "name": "proto",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "boolean",
+            "description": "option for BGP enable",
+            "name": "bgp",
+            "in": "query"
+          },
+          {
+            "type": "number",
+            "description": "block value if any",
+            "name": "block",
+            "in": "query"
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "OK"
+          },
+          "400": {
+            "description": "Malformed arguments for API call",
+            "schema": {
+              "$ref": "#/definitions/Error"
+            }
+          },
+          "401": {
+            "description": "Invalid authentication credentials",
+            "schema": {
+              "$ref": "#/definitions/Error"
+            }
+          },
+          "403": {
+            "description": "Capacity insufficient",
+            "schema": {
+              "$ref": "#/definitions/Error"
+            }
+          },
+          "404": {
+            "description": "Resource not found",
+            "schema": {
+              "$ref": "#/definitions/Error"
+            }
+          },
+          "409": {
+            "description": "Resource Conflict. VLAN already exists OR dependency VRF/VNET not found",
+            "schema": {
+              "$ref": "#/definitions/Error"
+            }
+          },
+          "500": {
+            "description": "Internal service error",
+            "schema": {
+              "$ref": "#/definitions/Error"
+            }
+          },
+          "503": {
+            "description": "Maintenance mode",
             "schema": {
               "$ref": "#/definitions/Error"
             }
@@ -1364,7 +2541,367 @@ func init() {
             }
           },
           "503": {
-            "description": "Maintanence mode",
+            "description": "Maintenance mode",
+            "schema": {
+              "$ref": "#/definitions/Error"
+            }
+          }
+        }
+      }
+    },
+    "/config/loadbalancer/hosturl/{hosturl}/externalipaddress/{ip_address}/port/{port}/portmax/{portmax}/protocol/{proto}": {
+      "delete": {
+        "description": "Delete an existing load balancer service with .",
+        "summary": "Delete an existing Load balancer service",
+        "parameters": [
+          {
+            "type": "string",
+            "description": "Attributes for load balance service",
+            "name": "hosturl",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "string",
+            "description": "Attributes for load balance service",
+            "name": "ip_address",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "number",
+            "description": "Attributes for load balance service",
+            "name": "port",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "number",
+            "description": "Attributes for load balance service",
+            "name": "portmax",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "string",
+            "description": "Attributes for load balance service",
+            "name": "proto",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "boolean",
+            "description": "option for BGP enable",
+            "name": "bgp",
+            "in": "query"
+          },
+          {
+            "type": "number",
+            "description": "block value if any",
+            "name": "block",
+            "in": "query"
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "OK"
+          },
+          "400": {
+            "description": "Malformed arguments for API call",
+            "schema": {
+              "$ref": "#/definitions/Error"
+            }
+          },
+          "401": {
+            "description": "Invalid authentication credentials",
+            "schema": {
+              "$ref": "#/definitions/Error"
+            }
+          },
+          "403": {
+            "description": "Capacity insufficient",
+            "schema": {
+              "$ref": "#/definitions/Error"
+            }
+          },
+          "404": {
+            "description": "Resource not found",
+            "schema": {
+              "$ref": "#/definitions/Error"
+            }
+          },
+          "409": {
+            "description": "Resource Conflict. VLAN already exists OR dependency VRF/VNET not found",
+            "schema": {
+              "$ref": "#/definitions/Error"
+            }
+          },
+          "500": {
+            "description": "Internal service error",
+            "schema": {
+              "$ref": "#/definitions/Error"
+            }
+          },
+          "503": {
+            "description": "Maintenance mode",
+            "schema": {
+              "$ref": "#/definitions/Error"
+            }
+          }
+        }
+      }
+    },
+    "/config/loadbalancer/hosturl/{hosturl}/externalipaddress/{ip_address}/port/{port}/protocol/{proto}": {
+      "delete": {
+        "description": "Delete an existing load balancer service with .",
+        "summary": "Delete an existing Load balancer service",
+        "parameters": [
+          {
+            "type": "string",
+            "description": "Attributes for load balance service",
+            "name": "hosturl",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "string",
+            "description": "Attributes for load balance service",
+            "name": "ip_address",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "number",
+            "description": "Attributes for load balance service",
+            "name": "port",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "string",
+            "description": "Attributes for load balance service",
+            "name": "proto",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "boolean",
+            "description": "option for BGP enable",
+            "name": "bgp",
+            "in": "query"
+          },
+          {
+            "type": "number",
+            "description": "block value if any",
+            "name": "block",
+            "in": "query"
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "OK"
+          },
+          "400": {
+            "description": "Malformed arguments for API call",
+            "schema": {
+              "$ref": "#/definitions/Error"
+            }
+          },
+          "401": {
+            "description": "Invalid authentication credentials",
+            "schema": {
+              "$ref": "#/definitions/Error"
+            }
+          },
+          "403": {
+            "description": "Capacity insufficient",
+            "schema": {
+              "$ref": "#/definitions/Error"
+            }
+          },
+          "404": {
+            "description": "Resource not found",
+            "schema": {
+              "$ref": "#/definitions/Error"
+            }
+          },
+          "409": {
+            "description": "Resource Conflict. VLAN already exists OR dependency VRF/VNET not found",
+            "schema": {
+              "$ref": "#/definitions/Error"
+            }
+          },
+          "500": {
+            "description": "Internal service error",
+            "schema": {
+              "$ref": "#/definitions/Error"
+            }
+          },
+          "503": {
+            "description": "Maintenance mode",
+            "schema": {
+              "$ref": "#/definitions/Error"
+            }
+          }
+        }
+      }
+    },
+    "/config/loadbalancer/name/{lb_name}": {
+      "delete": {
+        "description": "Delete an existing load balancer service with name.",
+        "summary": "Delete an existing Load balancer service",
+        "parameters": [
+          {
+            "type": "string",
+            "description": "Attributes for load balance service name",
+            "name": "lb_name",
+            "in": "path",
+            "required": true
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "OK"
+          },
+          "400": {
+            "description": "Malformed arguments for API call",
+            "schema": {
+              "$ref": "#/definitions/Error"
+            }
+          },
+          "401": {
+            "description": "Invalid authentication credentials",
+            "schema": {
+              "$ref": "#/definitions/Error"
+            }
+          },
+          "403": {
+            "description": "Capacity insufficient",
+            "schema": {
+              "$ref": "#/definitions/Error"
+            }
+          },
+          "404": {
+            "description": "Resource not found",
+            "schema": {
+              "$ref": "#/definitions/Error"
+            }
+          },
+          "409": {
+            "description": "Resource Conflict. VLAN already exists OR dependency VRF/VNET not found",
+            "schema": {
+              "$ref": "#/definitions/Error"
+            }
+          },
+          "500": {
+            "description": "Internal service error",
+            "schema": {
+              "$ref": "#/definitions/Error"
+            }
+          },
+          "503": {
+            "description": "Maintenance mode",
+            "schema": {
+              "$ref": "#/definitions/Error"
+            }
+          }
+        }
+      }
+    },
+    "/config/metrics": {
+      "get": {
+        "summary": "Get prometheus config value",
+        "responses": {
+          "200": {
+            "description": "prometheus config value",
+            "schema": {
+              "$ref": "#/definitions/MetricsConfig"
+            }
+          },
+          "400": {
+            "description": "Malformed arguments for API call",
+            "schema": {
+              "$ref": "#/definitions/Error"
+            }
+          },
+          "401": {
+            "description": "Invalid authentication credentials",
+            "schema": {
+              "$ref": "#/definitions/Error"
+            }
+          },
+          "500": {
+            "description": "Internal service error",
+            "schema": {
+              "$ref": "#/definitions/Error"
+            }
+          },
+          "503": {
+            "description": "Maintenance mode",
+            "schema": {
+              "$ref": "#/definitions/Error"
+            }
+          }
+        }
+      },
+      "post": {
+        "summary": "turn on prometheus option",
+        "responses": {
+          "204": {
+            "description": "OK"
+          },
+          "400": {
+            "description": "Malformed arguments for API call",
+            "schema": {
+              "$ref": "#/definitions/Error"
+            }
+          },
+          "401": {
+            "description": "Invalid authentication credentials",
+            "schema": {
+              "$ref": "#/definitions/Error"
+            }
+          },
+          "500": {
+            "description": "Internal service error",
+            "schema": {
+              "$ref": "#/definitions/Error"
+            }
+          },
+          "503": {
+            "description": "Maintenance mode",
+            "schema": {
+              "$ref": "#/definitions/Error"
+            }
+          }
+        }
+      },
+      "delete": {
+        "summary": "turn off prometheus option",
+        "responses": {
+          "204": {
+            "description": "OK"
+          },
+          "400": {
+            "description": "Malformed arguments for API call",
+            "schema": {
+              "$ref": "#/definitions/Error"
+            }
+          },
+          "401": {
+            "description": "Invalid authentication credentials",
+            "schema": {
+              "$ref": "#/definitions/Error"
+            }
+          },
+          "500": {
+            "description": "Internal service error",
+            "schema": {
+              "$ref": "#/definitions/Error"
+            }
+          },
+          "503": {
+            "description": "Maintenance mode",
             "schema": {
               "$ref": "#/definitions/Error"
             }
@@ -1428,7 +2965,7 @@ func init() {
             }
           },
           "503": {
-            "description": "Maintanence mode",
+            "description": "Maintenance mode",
             "schema": {
               "$ref": "#/definitions/Error"
             }
@@ -1468,7 +3005,7 @@ func init() {
             }
           },
           "503": {
-            "description": "Maintanence mode",
+            "description": "Maintenance mode",
             "schema": {
               "$ref": "#/definitions/Error"
             }
@@ -1530,7 +3067,7 @@ func init() {
             }
           },
           "503": {
-            "description": "Maintanence mode",
+            "description": "Maintenance mode",
             "schema": {
               "$ref": "#/definitions/Error"
             }
@@ -1594,7 +3131,7 @@ func init() {
             }
           },
           "503": {
-            "description": "Maintanence mode",
+            "description": "Maintenance mode",
             "schema": {
               "$ref": "#/definitions/Error"
             }
@@ -1634,7 +3171,7 @@ func init() {
             }
           },
           "503": {
-            "description": "Maintanence mode",
+            "description": "Maintenance mode",
             "schema": {
               "$ref": "#/definitions/Error"
             }
@@ -1703,7 +3240,7 @@ func init() {
             }
           },
           "503": {
-            "description": "Maintanence mode",
+            "description": "Maintenance mode",
             "schema": {
               "$ref": "#/definitions/Error"
             }
@@ -1762,7 +3299,7 @@ func init() {
             }
           },
           "503": {
-            "description": "Maintanence mode",
+            "description": "Maintenance mode",
             "schema": {
               "$ref": "#/definitions/Error"
             }
@@ -1824,7 +3361,7 @@ func init() {
             }
           },
           "503": {
-            "description": "Maintanence mode",
+            "description": "Maintenance mode",
             "schema": {
               "$ref": "#/definitions/Error"
             }
@@ -1888,7 +3425,7 @@ func init() {
             }
           },
           "503": {
-            "description": "Maintanence mode",
+            "description": "Maintenance mode",
             "schema": {
               "$ref": "#/definitions/Error"
             }
@@ -1928,7 +3465,7 @@ func init() {
             }
           },
           "503": {
-            "description": "Maintanence mode",
+            "description": "Maintenance mode",
             "schema": {
               "$ref": "#/definitions/Error"
             }
@@ -1990,7 +3527,7 @@ func init() {
             }
           },
           "503": {
-            "description": "Maintanence mode",
+            "description": "Maintenance mode",
             "schema": {
               "$ref": "#/definitions/Error"
             }
@@ -2030,7 +3567,7 @@ func init() {
             }
           },
           "503": {
-            "description": "Maintanence mode",
+            "description": "Maintenance mode",
             "schema": {
               "$ref": "#/definitions/Error"
             }
@@ -2094,7 +3631,7 @@ func init() {
             }
           },
           "503": {
-            "description": "Maintanence mode",
+            "description": "Maintenance mode",
             "schema": {
               "$ref": "#/definitions/Error"
             }
@@ -2158,7 +3695,7 @@ func init() {
             }
           },
           "503": {
-            "description": "Maintanence mode",
+            "description": "Maintenance mode",
             "schema": {
               "$ref": "#/definitions/Error"
             }
@@ -2227,7 +3764,7 @@ func init() {
             }
           },
           "503": {
-            "description": "Maintanence mode",
+            "description": "Maintenance mode",
             "schema": {
               "$ref": "#/definitions/Error"
             }
@@ -2291,7 +3828,7 @@ func init() {
             }
           },
           "503": {
-            "description": "Maintanence mode",
+            "description": "Maintenance mode",
             "schema": {
               "$ref": "#/definitions/Error"
             }
@@ -2331,7 +3868,7 @@ func init() {
             }
           },
           "503": {
-            "description": "Maintanence mode",
+            "description": "Maintenance mode",
             "schema": {
               "$ref": "#/definitions/Error"
             }
@@ -2393,7 +3930,7 @@ func init() {
             }
           },
           "503": {
-            "description": "Maintanence mode",
+            "description": "Maintenance mode",
             "schema": {
               "$ref": "#/definitions/Error"
             }
@@ -2457,7 +3994,7 @@ func init() {
             }
           },
           "503": {
-            "description": "Maintanence mode",
+            "description": "Maintenance mode",
             "schema": {
               "$ref": "#/definitions/Error"
             }
@@ -2497,7 +4034,7 @@ func init() {
             }
           },
           "503": {
-            "description": "Maintanence mode",
+            "description": "Maintenance mode",
             "schema": {
               "$ref": "#/definitions/Error"
             }
@@ -2566,7 +4103,7 @@ func init() {
             }
           },
           "503": {
-            "description": "Maintanence mode",
+            "description": "Maintenance mode",
             "schema": {
               "$ref": "#/definitions/Error"
             }
@@ -2612,7 +4149,7 @@ func init() {
             }
           },
           "503": {
-            "description": "Maintanence mode",
+            "description": "Maintenance mode",
             "schema": {
               "$ref": "#/definitions/Error"
             }
@@ -2652,7 +4189,7 @@ func init() {
             }
           },
           "503": {
-            "description": "Maintanence mode",
+            "description": "Maintenance mode",
             "schema": {
               "$ref": "#/definitions/Error"
             }
@@ -2691,7 +4228,7 @@ func init() {
             }
           },
           "503": {
-            "description": "Maintanence mode",
+            "description": "Maintenance mode",
             "schema": {
               "$ref": "#/definitions/Error"
             }
@@ -2742,7 +4279,7 @@ func init() {
             }
           },
           "503": {
-            "description": "Maintanence mode",
+            "description": "Maintenance mode",
             "schema": {
               "$ref": "#/definitions/Error"
             }
@@ -2791,7 +4328,7 @@ func init() {
             }
           },
           "503": {
-            "description": "Maintanence mode",
+            "description": "Maintenance mode",
             "schema": {
               "$ref": "#/definitions/Error"
             }
@@ -2855,7 +4392,7 @@ func init() {
             }
           },
           "503": {
-            "description": "Maintanence mode",
+            "description": "Maintenance mode",
             "schema": {
               "$ref": "#/definitions/Error"
             }
@@ -2895,7 +4432,7 @@ func init() {
             }
           },
           "503": {
-            "description": "Maintanence mode",
+            "description": "Maintenance mode",
             "schema": {
               "$ref": "#/definitions/Error"
             }
@@ -2957,7 +4494,7 @@ func init() {
             }
           },
           "503": {
-            "description": "Maintanence mode",
+            "description": "Maintenance mode",
             "schema": {
               "$ref": "#/definitions/Error"
             }
@@ -3029,7 +4566,7 @@ func init() {
             }
           },
           "503": {
-            "description": "Maintanence mode",
+            "description": "Maintenance mode",
             "schema": {
               "$ref": "#/definitions/Error"
             }
@@ -3094,10 +4631,142 @@ func init() {
             }
           },
           "503": {
-            "description": "Maintanence mode",
+            "description": "Maintenance mode",
             "schema": {
               "$ref": "#/definitions/Error"
             }
+          }
+        }
+      }
+    },
+    "/log-archives": {
+      "get": {
+        "description": "Retrieve a list of all rotated log archive files available for download.",
+        "summary": "List available log archives",
+        "responses": {
+          "200": {
+            "description": "List of log archive files",
+            "schema": {
+              "$ref": "#/definitions/LogArchives"
+            }
+          },
+          "500": {
+            "description": "Internal server error",
+            "schema": {
+              "$ref": "#/definitions/Error"
+            }
+          }
+        }
+      }
+    },
+    "/log-archives/{filename}": {
+      "get": {
+        "description": "Download a log archive file by its name.",
+        "summary": "Download a specific log archive",
+        "parameters": [
+          {
+            "type": "string",
+            "description": "Name of the log archive file to download.",
+            "name": "filename",
+            "in": "path",
+            "required": true
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Log archive file download",
+            "schema": {
+              "type": "file"
+            }
+          },
+          "400": {
+            "description": "Missing or invalid filename",
+            "schema": {
+              "$ref": "#/definitions/Error"
+            }
+          },
+          "404": {
+            "description": "File not found",
+            "schema": {
+              "$ref": "#/definitions/Error"
+            }
+          },
+          "500": {
+            "description": "Internal server error",
+            "schema": {
+              "$ref": "#/definitions/Error"
+            }
+          }
+        }
+      }
+    },
+    "/logs": {
+      "get": {
+        "description": "Fetch the latest logs from the system with optional filtering by number of lines, log level, or keyword.",
+        "summary": "Fetch logs with optional filtering",
+        "parameters": [
+          {
+            "type": "string",
+            "description": "Number of log lines to fetch (default is 100).",
+            "name": "lines",
+            "in": "query"
+          },
+          {
+            "type": "string",
+            "description": "Filter logs by level (e.g., INFO, ERROR, DEBUG).",
+            "name": "level",
+            "in": "query"
+          },
+          {
+            "type": "string",
+            "description": "Filter logs containing a specific keyword or phrase.",
+            "name": "keyword",
+            "in": "query"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Logs fetched successfully",
+            "schema": {
+              "$ref": "#/definitions/Logs"
+            }
+          },
+          "400": {
+            "description": "Invalid query parameters",
+            "schema": {
+              "$ref": "#/definitions/Error"
+            }
+          },
+          "500": {
+            "description": "Internal server error",
+            "schema": {
+              "$ref": "#/definitions/Error"
+            }
+          }
+        }
+      }
+    },
+    "/meta": {
+      "get": {
+        "description": "Returns metadata about required fields for each POST API.",
+        "produces": [
+          "application/json"
+        ],
+        "tags": [
+          "Metadata"
+        ],
+        "summary": "Get metadata for all POST APIs",
+        "operationId": "getMeta",
+        "responses": {
+          "200": {
+            "description": "Successfully retrieved metadata",
+            "schema": {
+              "type": "object",
+              "additionalProperties": true
+            }
+          },
+          "500": {
+            "description": "Internal Server Error"
           }
         }
       }
@@ -3110,6 +4779,458 @@ func init() {
             "description": "Metrics in prometheus text format",
             "schema": {
               "type": "string"
+            }
+          }
+        }
+      }
+    },
+    "/metrics/epdisttraffic": {
+      "get": {
+        "description": "Get metrics related to endpoint distribution traffic per service. The additionalProp is service name.",
+        "summary": "Get endpoint distribution traffic metrics",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "schema": {
+              "$ref": "#/definitions/EpDistTrafficMetrics"
+            }
+          },
+          "500": {
+            "description": "Internal service error",
+            "schema": {
+              "$ref": "#/definitions/Error"
+            }
+          }
+        }
+      }
+    },
+    "/metrics/errorcount": {
+      "get": {
+        "description": "Get metrics related to error counts.",
+        "summary": "Get error count metrics",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "schema": {
+              "$ref": "#/definitions/ErrorCountMetrics"
+            }
+          },
+          "500": {
+            "description": "Internal service error",
+            "schema": {
+              "$ref": "#/definitions/Error"
+            }
+          }
+        }
+      }
+    },
+    "/metrics/flowcount": {
+      "get": {
+        "description": "Get metrics related to flow counts.",
+        "summary": "Get flow count metrics",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "schema": {
+              "$ref": "#/definitions/FlowCountMetrics"
+            }
+          },
+          "500": {
+            "description": "Internal service error",
+            "schema": {
+              "$ref": "#/definitions/Error"
+            }
+          }
+        }
+      }
+    },
+    "/metrics/fwdrops": {
+      "get": {
+        "description": "Get metrics related to firewall drops.",
+        "summary": "Get firewall drops metrics",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "schema": {
+              "$ref": "#/definitions/FwDropsMetrics"
+            }
+          },
+          "500": {
+            "description": "Internal service error",
+            "schema": {
+              "$ref": "#/definitions/Error"
+            }
+          }
+        }
+      }
+    },
+    "/metrics/hostcount": {
+      "get": {
+        "description": "Get metrics related to host counts.",
+        "summary": "Get host count metrics",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "schema": {
+              "$ref": "#/definitions/HostCountMetrics"
+            }
+          },
+          "500": {
+            "description": "Internal service error",
+            "schema": {
+              "$ref": "#/definitions/Error"
+            }
+          }
+        }
+      }
+    },
+    "/metrics/lbprocessedtraffic": {
+      "get": {
+        "description": "Get metrics related to load balancer processed traffic.",
+        "summary": "Get load balancer processed traffic metrics",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "schema": {
+              "$ref": "#/definitions/LbProcessedTrafficMetrics"
+            }
+          },
+          "500": {
+            "description": "Internal service error",
+            "schema": {
+              "$ref": "#/definitions/Error"
+            }
+          }
+        }
+      }
+    },
+    "/metrics/lbrulecount": {
+      "get": {
+        "description": "Get metrics related to load balancer rule counts.",
+        "summary": "Get load balancer rule count metrics",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "schema": {
+              "$ref": "#/definitions/LbRuleCountMetrics"
+            }
+          },
+          "500": {
+            "description": "Internal service error",
+            "schema": {
+              "$ref": "#/definitions/Error"
+            }
+          }
+        }
+      }
+    },
+    "/metrics/newflowcount": {
+      "get": {
+        "description": "Get metrics related to new flow counts.",
+        "summary": "Get new flow count metrics",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "schema": {
+              "$ref": "#/definitions/NewFlowCountMetrics"
+            }
+          },
+          "500": {
+            "description": "Internal service error",
+            "schema": {
+              "$ref": "#/definitions/Error"
+            }
+          }
+        }
+      }
+    },
+    "/metrics/processedtraffic": {
+      "get": {
+        "description": "Get metrics related to processed traffic.",
+        "summary": "Get processed traffic metrics",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "schema": {
+              "$ref": "#/definitions/ProcessedTrafficMetrics"
+            }
+          },
+          "500": {
+            "description": "Internal service error",
+            "schema": {
+              "$ref": "#/definitions/Error"
+            }
+          }
+        }
+      }
+    },
+    "/metrics/reqcountperclient": {
+      "get": {
+        "description": "Get metrics related to request counts per client. The additionalProp is client IP address.",
+        "summary": "Get request count per client metrics",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "schema": {
+              "$ref": "#/definitions/ReqCountPerClientMetrics"
+            }
+          },
+          "500": {
+            "description": "Internal service error",
+            "schema": {
+              "$ref": "#/definitions/Error"
+            }
+          }
+        }
+      }
+    },
+    "/metrics/requestcount": {
+      "get": {
+        "description": "Get metrics related to request counts.",
+        "summary": "Get request count metrics",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "schema": {
+              "$ref": "#/definitions/RequestCountMetrics"
+            }
+          },
+          "500": {
+            "description": "Internal service error",
+            "schema": {
+              "$ref": "#/definitions/Error"
+            }
+          }
+        }
+      }
+    },
+    "/metrics/servicedisttraffic": {
+      "get": {
+        "description": "Get metrics related to service distribution traffic. The additionalProp is service name.",
+        "summary": "Get service distribution traffic metrics",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "schema": {
+              "$ref": "#/definitions/ServiceDistTrafficMetrics"
+            }
+          },
+          "500": {
+            "description": "Internal service error",
+            "schema": {
+              "$ref": "#/definitions/Error"
+            }
+          }
+        }
+      }
+    },
+    "/nodegraph/all": {
+      "get": {
+        "description": "Retrieve a list of all nodes and edges in the current topology.",
+        "summary": "List current topology",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "schema": {
+              "$ref": "#/definitions/NodeGraphShcmea"
+            }
+          },
+          "401": {
+            "description": "Invalid authentication credentials",
+            "schema": {
+              "$ref": "#/definitions/Error"
+            }
+          },
+          "500": {
+            "description": "Internal service error",
+            "schema": {
+              "$ref": "#/definitions/Error"
+            }
+          },
+          "503": {
+            "description": "Maintenance mode",
+            "schema": {
+              "$ref": "#/definitions/Error"
+            }
+          }
+        }
+      }
+    },
+    "/nodegraph/{service}": {
+      "get": {
+        "description": "Retrieve a list of all nodes and edges in the current topology for a specific service.",
+        "summary": "List current topology for a specific service",
+        "parameters": [
+          {
+            "type": "string",
+            "description": "Name of the service to filter the topology by.",
+            "name": "service",
+            "in": "path",
+            "required": true
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "schema": {
+              "$ref": "#/definitions/NodeGraphShcmea"
+            }
+          },
+          "401": {
+            "description": "Invalid authentication credentials",
+            "schema": {
+              "$ref": "#/definitions/Error"
+            }
+          },
+          "500": {
+            "description": "Internal service error",
+            "schema": {
+              "$ref": "#/definitions/Error"
+            }
+          },
+          "503": {
+            "description": "Maintenance mode",
+            "schema": {
+              "$ref": "#/definitions/Error"
+            }
+          }
+        }
+      }
+    },
+    "/oauth/{provider}": {
+      "get": {
+        "security": [],
+        "description": "Initiates the OAuth login flow for the specified provider.",
+        "tags": [
+          "auth"
+        ],
+        "summary": "OAuth login",
+        "parameters": [
+          {
+            "type": "string",
+            "description": "OAuth provider",
+            "name": "provider",
+            "in": "path",
+            "required": true
+          }
+        ],
+        "responses": {
+          "302": {
+            "description": "Found",
+            "schema": {
+              "$ref": "#/definitions/OauthMessageResponse"
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "schema": {
+              "$ref": "#/definitions/OauthErrorResponse"
+            }
+          }
+        }
+      }
+    },
+    "/oauth/{provider}/callback": {
+      "get": {
+        "security": [],
+        "description": "Handles the OAuth callback flow for the specified provider.",
+        "tags": [
+          "auth"
+        ],
+        "summary": "OAuth callback",
+        "parameters": [
+          {
+            "type": "string",
+            "description": "OAuth provider",
+            "name": "provider",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "string",
+            "description": "OAuth code",
+            "name": "code",
+            "in": "query",
+            "required": true
+          },
+          {
+            "type": "string",
+            "description": "OAuth state",
+            "name": "state",
+            "in": "query",
+            "required": true
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "schema": {
+              "$ref": "#/definitions/OauthLoginResponse"
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "schema": {
+              "$ref": "#/definitions/OauthErrorResponse"
+            }
+          },
+          "500": {
+            "description": "Internal Server Error",
+            "schema": {
+              "$ref": "#/definitions/OauthErrorResponse"
+            }
+          }
+        }
+      }
+    },
+    "/oauth/{provider}/token": {
+      "get": {
+        "security": [],
+        "description": "Handles the OAuth token refresh workflow for the specified provider.",
+        "tags": [
+          "auth"
+        ],
+        "summary": "OAuth callback",
+        "parameters": [
+          {
+            "type": "string",
+            "description": "OAuth provider",
+            "name": "provider",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "string",
+            "description": "OAuth access token",
+            "name": "token",
+            "in": "query",
+            "required": true
+          },
+          {
+            "type": "string",
+            "description": "OAuth refresh token",
+            "name": "refreshtoken",
+            "in": "query",
+            "required": true
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "schema": {
+              "$ref": "#/definitions/OauthTokenResponse"
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "schema": {
+              "$ref": "#/definitions/OauthErrorResponse"
+            }
+          },
+          "500": {
+            "description": "Internal Server Error",
+            "schema": {
+              "$ref": "#/definitions/OauthErrorResponse"
             }
           }
         }
@@ -3139,7 +5260,7 @@ func init() {
             }
           },
           "503": {
-            "description": "Maintanence mode",
+            "description": "Maintenance mode",
             "schema": {
               "$ref": "#/definitions/Error"
             }
@@ -3179,7 +5300,7 @@ func init() {
             }
           },
           "503": {
-            "description": "Maintanence mode",
+            "description": "Maintenance mode",
             "schema": {
               "$ref": "#/definitions/Error"
             }
@@ -3219,7 +5340,40 @@ func init() {
             }
           },
           "503": {
-            "description": "Maintanence mode",
+            "description": "Maintenance mode",
+            "schema": {
+              "$ref": "#/definitions/Error"
+            }
+          }
+        }
+      }
+    },
+    "/version": {
+      "get": {
+        "security": [],
+        "description": "Get version information",
+        "summary": "Get version information in the device",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "schema": {
+              "$ref": "#/definitions/VersionGetEntry"
+            }
+          },
+          "401": {
+            "description": "Invalid authentication credentials",
+            "schema": {
+              "$ref": "#/definitions/Error"
+            }
+          },
+          "500": {
+            "description": "Internal service error",
+            "schema": {
+              "$ref": "#/definitions/Error"
+            }
+          },
+          "503": {
+            "description": "Maintenance mode",
             "schema": {
               "$ref": "#/definitions/Error"
             }
@@ -3229,8 +5383,46 @@ func init() {
     }
   },
   "definitions": {
+    "BGPApplyPolicyToNeighborMod": {
+      "type": "object",
+      "required": [
+        "ipAddress",
+        "policyType",
+        "routeAction"
+      ],
+      "properties": {
+        "ipAddress": {
+          "description": "BGP Neighbor IP address",
+          "type": "string"
+        },
+        "policies": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "policyType": {
+          "type": "string",
+          "enum": [
+            "import",
+            "export"
+          ]
+        },
+        "routeAction": {
+          "type": "string",
+          "enum": [
+            "accept",
+            "reject"
+          ]
+        }
+      }
+    },
     "BGPGlobalConfig": {
       "type": "object",
+      "required": [
+        "routerId",
+        "localAs"
+      ],
       "properties": {
         "SetNextHopSelf": {
           "description": "Adds policy to set next hop as self, if enabled",
@@ -3252,6 +5444,10 @@ func init() {
     },
     "BGPNeigh": {
       "type": "object",
+      "required": [
+        "ipAddress",
+        "remoteAs"
+      ],
       "properties": {
         "ipAddress": {
           "description": "BGP Neighbor IP address",
@@ -3268,6 +5464,354 @@ func init() {
         "setMultiHop": {
           "description": "Enable multi-hop peering (if needed)",
           "type": "boolean"
+        }
+      }
+    },
+    "BGPNeighGetEntry": {
+      "type": "object",
+      "properties": {
+        "ipAddress": {
+          "description": "BGP Neighbor IP address",
+          "type": "string"
+        },
+        "remoteAs": {
+          "description": "Remote AS number",
+          "type": "integer"
+        },
+        "state": {
+          "description": "Current state",
+          "type": "string"
+        },
+        "updowntime": {
+          "description": "Current uptime",
+          "type": "string"
+        }
+      }
+    },
+    "BGPPolicyDefinedSetGetEntry": {
+      "type": "object",
+      "required": [
+        "name"
+      ],
+      "properties": {
+        "list": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "name": {
+          "description": "BGP Defined set Entries",
+          "type": "string"
+        },
+        "prefixList": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/BGPPolicyPrefix"
+          }
+        }
+      }
+    },
+    "BGPPolicyDefinedSetsMod": {
+      "type": "object",
+      "required": [
+        "name"
+      ],
+      "properties": {
+        "List": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "name": {
+          "description": "BGP Neighbor IP address",
+          "type": "string"
+        },
+        "prefixList": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/BGPPolicyPrefix"
+          }
+        }
+      }
+    },
+    "BGPPolicyDefinitionsMod": {
+      "type": "object",
+      "properties": {
+        "name": {
+          "description": "BGP Neighbor IP address",
+          "type": "string"
+        },
+        "statements": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/BGPPolicyDefinitionsStatement"
+          }
+        }
+      }
+    },
+    "BGPPolicyDefinitionsStatement": {
+      "type": "object",
+      "properties": {
+        "actions": {
+          "type": "object",
+          "properties": {
+            "bgpActions": {
+              "type": "object",
+              "properties": {
+                "setAsPathPrepend": {
+                  "type": "object",
+                  "properties": {
+                    "as": {
+                      "type": "string"
+                    },
+                    "repeatN": {
+                      "type": "integer"
+                    }
+                  }
+                },
+                "setCommunity": {
+                  "type": "object",
+                  "properties": {
+                    "options": {
+                      "type": "string"
+                    },
+                    "setCommunityMethod": {
+                      "type": "array",
+                      "items": {
+                        "type": "string"
+                      }
+                    }
+                  }
+                },
+                "setExtCommunity": {
+                  "type": "object",
+                  "properties": {
+                    "options": {
+                      "type": "string"
+                    },
+                    "setCommunityMethod": {
+                      "type": "array",
+                      "items": {
+                        "type": "string"
+                      }
+                    }
+                  }
+                },
+                "setLargeCommunity": {
+                  "type": "object",
+                  "properties": {
+                    "options": {
+                      "type": "string"
+                    },
+                    "setCommunityMethod": {
+                      "type": "array",
+                      "items": {
+                        "type": "string"
+                      }
+                    }
+                  }
+                },
+                "setLocalPerf": {
+                  "type": "integer"
+                },
+                "setMed": {
+                  "type": "string"
+                },
+                "setNextHop": {
+                  "type": "string"
+                }
+              }
+            },
+            "routeDisposition": {
+              "type": "string"
+            }
+          }
+        },
+        "conditions": {
+          "type": "object",
+          "properties": {
+            "bgpConditions": {
+              "type": "object",
+              "properties": {
+                "afiSafiIn": {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  }
+                },
+                "asPathLength": {
+                  "type": "object",
+                  "properties": {
+                    "operator": {
+                      "type": "string"
+                    },
+                    "value": {
+                      "type": "integer"
+                    }
+                  }
+                },
+                "matchAsPathSet": {
+                  "type": "object",
+                  "properties": {
+                    "asPathSet": {
+                      "type": "string"
+                    },
+                    "matchSetOptions": {
+                      "type": "string"
+                    }
+                  }
+                },
+                "matchCommunitySet": {
+                  "type": "object",
+                  "properties": {
+                    "communitySet": {
+                      "type": "string"
+                    },
+                    "matchSetOptions": {
+                      "type": "string"
+                    }
+                  }
+                },
+                "matchExtCommunitySet": {
+                  "type": "object",
+                  "properties": {
+                    "communitySet": {
+                      "type": "string"
+                    },
+                    "matchSetOptions": {
+                      "type": "string"
+                    }
+                  }
+                },
+                "matchLargeCommunitySet": {
+                  "type": "object",
+                  "properties": {
+                    "communitySet": {
+                      "type": "string"
+                    },
+                    "matchSetOptions": {
+                      "type": "string"
+                    }
+                  }
+                },
+                "nextHopInList": {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  }
+                },
+                "routeType": {
+                  "type": "string"
+                },
+                "rpki": {
+                  "type": "string"
+                }
+              }
+            },
+            "matchNeighborSet": {
+              "type": "object",
+              "properties": {
+                "matchSetOption": {
+                  "type": "string"
+                },
+                "neighborSet": {
+                  "type": "string"
+                }
+              }
+            },
+            "matchPrefixSet": {
+              "type": "object",
+              "properties": {
+                "matchSetOption": {
+                  "type": "string"
+                },
+                "prefixSet": {
+                  "type": "string"
+                }
+              }
+            }
+          }
+        },
+        "name": {
+          "type": "string"
+        }
+      }
+    },
+    "BGPPolicyPrefix": {
+      "type": "object",
+      "properties": {
+        "ipPrefix": {
+          "description": "BGP Neighbor IP address",
+          "type": "string"
+        },
+        "masklengthRange": {
+          "description": "Remote AS number",
+          "type": "string"
+        }
+      }
+    },
+    "BfdEntry": {
+      "type": "object",
+      "properties": {
+        "instance": {
+          "description": "Instance name running BFD session",
+          "type": "string"
+        },
+        "interval": {
+          "description": "Tx interval between BFD packets(in microseconds)",
+          "type": "integer",
+          "format": "uint64"
+        },
+        "remoteIp": {
+          "description": "Remote IP",
+          "type": "string"
+        },
+        "retryCount": {
+          "description": "Retry Count to detect failure",
+          "type": "integer",
+          "format": "uint8"
+        },
+        "sourceIp": {
+          "description": "Remote IP",
+          "type": "string"
+        }
+      }
+    },
+    "BfdGetEntry": {
+      "type": "object",
+      "properties": {
+        "instance": {
+          "description": "Instance name",
+          "type": "string"
+        },
+        "interval": {
+          "description": "Tx interval between BFD packets(in microseconds)",
+          "type": "integer",
+          "format": "uint64"
+        },
+        "port": {
+          "description": "port number to be used for BFD session",
+          "type": "integer",
+          "format": "uint16"
+        },
+        "remoteIp": {
+          "description": "Remote IP",
+          "type": "string"
+        },
+        "retryCount": {
+          "description": "Retry Count to detect failure",
+          "type": "integer",
+          "format": "uint8"
+        },
+        "sourceIP": {
+          "description": "Source IP to be used for BFD session",
+          "type": "string"
+        },
+        "state": {
+          "description": "Current state for BFD session",
+          "type": "string"
         }
       }
     },
@@ -3335,6 +5879,10 @@ func init() {
           "description": "port number for the access",
           "type": "integer"
         },
+        "ident": {
+          "description": "value for Conntrack ident",
+          "type": "string"
+        },
         "packets": {
           "description": "Packet counts of the conntrack",
           "type": "integer"
@@ -3390,8 +5938,37 @@ func init() {
         }
       }
     },
+    "Edge": {
+      "type": "object",
+      "properties": {
+        "color": {
+          "type": "string"
+        },
+        "id": {
+          "type": "string"
+        },
+        "mainstat": {
+          "type": "number"
+        },
+        "secondarystat": {
+          "type": "number"
+        },
+        "source": {
+          "type": "string"
+        },
+        "target": {
+          "type": "string"
+        },
+        "thickness": {
+          "type": "integer"
+        }
+      }
+    },
     "EndPoint": {
       "type": "object",
+      "required": [
+        "hostName"
+      ],
       "properties": {
         "hostName": {
           "description": "Host name in CIDR",
@@ -3480,6 +6057,47 @@ func init() {
         }
       }
     },
+    "EndPointHostState": {
+      "type": "object",
+      "properties": {
+        "epPort": {
+          "description": "The end-point port (0 if not applicable)",
+          "type": "integer"
+        },
+        "epProto": {
+          "description": "The end-point prototype (tcp,udp,sctp,icmp,http(s), empty if not applicable)",
+          "type": "string"
+        },
+        "hostName": {
+          "description": "Host name in CIDR",
+          "type": "string"
+        },
+        "state": {
+          "description": "Host state string (\"green\", \"yellow\", \"red\" )",
+          "type": "string"
+        }
+      }
+    },
+    "EpDistTrafficMetrics": {
+      "type": "object",
+      "additionalProperties": {
+        "type": "array",
+        "items": {
+          "type": "object",
+          "properties": {
+            "dip": {
+              "type": "string"
+            },
+            "ratio": {
+              "type": "number"
+            },
+            "value": {
+              "type": "number"
+            }
+          }
+        }
+      }
+    },
     "Error": {
       "type": "object",
       "properties": {
@@ -3505,8 +6123,42 @@ func init() {
         }
       }
     },
+    "ErrorCountMetrics": {
+      "type": "object",
+      "properties": {
+        "total_errors": {
+          "type": "number"
+        },
+        "total_errors_per_service": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "name": {
+                "type": "string"
+              },
+              "value": {
+                "type": "number"
+              }
+            }
+          }
+        }
+      }
+    },
+    "ErrorResponse": {
+      "type": "object",
+      "properties": {
+        "message": {
+          "type": "string"
+        }
+      }
+    },
     "FDBEntry": {
       "type": "object",
+      "required": [
+        "dev",
+        "macAddress"
+      ],
       "properties": {
         "dev": {
           "description": "Name of the interface device to which you want to modify FDB",
@@ -3553,6 +6205,10 @@ func init() {
     },
     "FirewallEntry": {
       "type": "object",
+      "required": [
+        "ruleArguments",
+        "opts"
+      ],
       "properties": {
         "opts": {
           "$ref": "#/definitions/FirewallOptionEntry"
@@ -3569,6 +6225,14 @@ func init() {
           "description": "Allow any matching rule",
           "type": "boolean"
         },
+        "counter": {
+          "description": "traffic counters",
+          "type": "string"
+        },
+        "doSnat": {
+          "description": "Do SNAT on matching rule",
+          "type": "boolean"
+        },
         "drop": {
           "description": "Drop any matching rule",
           "type": "boolean"
@@ -3576,6 +6240,10 @@ func init() {
         "fwMark": {
           "description": "Set a fwmark for any matching rule",
           "type": "integer"
+        },
+        "onDefault": {
+          "description": "Trigger only on default cases",
+          "type": "boolean"
         },
         "record": {
           "description": "Record or dump for matching rule",
@@ -3588,6 +6256,14 @@ func init() {
         "redirectPortName": {
           "description": "Redirect any matching rule",
           "type": "string"
+        },
+        "toIP": {
+          "description": "Modify to given IP in CIDR notation",
+          "type": "string"
+        },
+        "toPort": {
+          "description": "Modify to given Port (Zero if port is not to be modified)",
+          "type": "integer"
         },
         "trap": {
           "description": "Trap anything matching rule",
@@ -3636,8 +6312,73 @@ func init() {
         }
       }
     },
+    "FlowCountMetrics": {
+      "type": "object",
+      "properties": {
+        "active_conntrack_count": {
+          "type": "number"
+        },
+        "active_flow_count_sctp": {
+          "type": "number"
+        },
+        "active_flow_count_tcp": {
+          "type": "number"
+        },
+        "active_flow_count_udp": {
+          "type": "number"
+        },
+        "inactive_flow_count": {
+          "type": "number"
+        }
+      }
+    },
+    "FwDropsMetrics": {
+      "type": "object",
+      "properties": {
+        "total_fw_drops": {
+          "type": "number"
+        },
+        "total_fw_drops_per_rule": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "fw_rule": {
+                "type": "string"
+              },
+              "value": {
+                "type": "number"
+              }
+            }
+          }
+        }
+      }
+    },
+    "HealthCheckResponse": {
+      "type": "object",
+      "properties": {
+        "status": {
+          "type": "string"
+        }
+      }
+    },
+    "HostCountMetrics": {
+      "type": "object",
+      "properties": {
+        "healthy_host_count": {
+          "type": "number"
+        },
+        "unhealthy_host_count": {
+          "type": "number"
+        }
+      }
+    },
     "IPv4AddressEntry": {
       "type": "object",
+      "required": [
+        "dev",
+        "ipAddress"
+      ],
       "properties": {
         "dev": {
           "description": "Name of the interface device to which you want to modify the IP address",
@@ -3671,13 +6412,164 @@ func init() {
         }
       }
     },
-    "LoadbalanceEntry": {
+    "K8sConntrackEntry": {
       "type": "object",
       "properties": {
+        "bytes": {
+          "description": "Packet bytes of the conntrack",
+          "type": "integer"
+        },
+        "conntrackAct": {
+          "description": "value for Conntrack Act",
+          "type": "string"
+        },
+        "conntrackState": {
+          "description": "value for Conntrack state",
+          "type": "string"
+        },
+        "destinationIP": {
+          "description": "IP address for externel access",
+          "type": "string"
+        },
+        "destinationNamespace": {
+          "description": "Namespace of the destination",
+          "type": "string"
+        },
+        "destinationNode": {
+          "description": "Node of the destination",
+          "type": "string"
+        },
+        "destinationPod": {
+          "description": "Pod name of the destination",
+          "type": "string"
+        },
+        "destinationPort": {
+          "description": "port number for the access",
+          "type": "integer"
+        },
+        "ident": {
+          "description": "value for Conntrack ident",
+          "type": "string"
+        },
+        "k8sservName": {
+          "description": "K8s service name",
+          "type": "string"
+        },
+        "packets": {
+          "description": "Packet counts of the conntrack",
+          "type": "integer"
+        },
+        "protocol": {
+          "description": "value for access protocol",
+          "type": "string"
+        },
+        "servName": {
+          "description": "Connection's Service Name",
+          "type": "string"
+        },
+        "sourceIP": {
+          "description": "IP address for externel access",
+          "type": "string"
+        },
+        "sourceNamespace": {
+          "description": "Namespace of the source",
+          "type": "string"
+        },
+        "sourceNode": {
+          "description": "Node of the source",
+          "type": "string"
+        },
+        "sourcePod": {
+          "description": "Pod name of the soruce",
+          "type": "string"
+        },
+        "sourcePort": {
+          "description": "port number for the access",
+          "type": "integer"
+        }
+      }
+    },
+    "LbProcessedTrafficMetrics": {
+      "type": "object",
+      "properties": {
+        "lb_rule_interaction_bytes": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "dip": {
+                "type": "string"
+              },
+              "service": {
+                "type": "string"
+              },
+              "sip": {
+                "type": "string"
+              },
+              "value": {
+                "type": "number"
+              }
+            }
+          }
+        },
+        "lb_rule_interaction_packets": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "dip": {
+                "type": "string"
+              },
+              "service": {
+                "type": "string"
+              },
+              "sip": {
+                "type": "string"
+              },
+              "value": {
+                "type": "number"
+              }
+            }
+          }
+        }
+      }
+    },
+    "LbRuleCountMetrics": {
+      "type": "object",
+      "properties": {
+        "lb_rule_count": {
+          "type": "number"
+        }
+      }
+    },
+    "LoadbalanceEntry": {
+      "type": "object",
+      "required": [
+        "serviceArguments",
+        "endpoints"
+      ],
+      "properties": {
+        "allowedSources": {
+          "description": "values of allowed source IP",
+          "type": "array",
+          "items": {
+            "properties": {
+              "prefix": {
+                "description": "IP address for allowed source access",
+                "type": "string"
+              }
+            }
+          }
+        },
         "endpoints": {
           "description": "values of End point servers",
           "type": "array",
           "items": {
+            "required": [
+              "endpointIP",
+              "weight",
+              "targetPort"
+            ],
             "properties": {
               "counter": {
                 "description": "traffic counters of the endpoint",
@@ -3716,6 +6608,10 @@ func init() {
         },
         "serviceArguments": {
           "type": "object",
+          "required": [
+            "externalIP",
+            "port"
+          ],
           "properties": {
             "bgp": {
               "description": "value for BGP enable or not",
@@ -3724,10 +6620,18 @@ func init() {
             "block": {
               "description": "block-number if any of this LB entry",
               "type": "integer",
-              "format": "uint16"
+              "format": "uint32"
+            },
+            "egress": {
+              "description": "flag to indicate an egress rule",
+              "type": "boolean"
             },
             "externalIP": {
-              "description": "IP address for externel access",
+              "description": "IP address for external access",
+              "type": "string"
+            },
+            "host": {
+              "description": "Ingress specific host URL path",
               "type": "string"
             },
             "inactiveTimeOut": {
@@ -3740,9 +6644,17 @@ func init() {
               "type": "boolean"
             },
             "mode": {
-              "description": "value for NAT mode (0-DNAT, 1-oneArm, 2-fullNAT)",
+              "description": "value for NAT mode (0-DNAT,1-onearm, 2-fullnat, 3-dsr, 4-fullproxy, 5-hostonearm, 0-default)",
               "type": "integer",
-              "format": "int32"
+              "format": "int32",
+              "enum": [
+                0,
+                1,
+                2,
+                3,
+                4,
+                5
+              ]
             },
             "monitor": {
               "description": "value for monitoring enabled or not",
@@ -3752,9 +6664,37 @@ func init() {
               "description": "service name",
               "type": "string"
             },
+            "oper": {
+              "description": "end-point specific op (0-create, 1-attachEP, 2-detachEP)",
+              "type": "integer",
+              "format": "int32",
+              "enum": [
+                0,
+                1,
+                2
+              ]
+            },
             "port": {
-              "description": "port number for the access",
+              "description": "(Min) port number for the access",
               "type": "integer"
+            },
+            "portMax": {
+              "description": "Max port number(range) for the access",
+              "type": "integer"
+            },
+            "privateIP": {
+              "description": "private IP (NAT'd) address for external access",
+              "type": "string"
+            },
+            "probeRetries": {
+              "description": "value for probe retries",
+              "type": "integer",
+              "format": "int32"
+            },
+            "probeTimeout": {
+              "description": "value for probe timer (in seconds)",
+              "type": "integer",
+              "format": "uint32"
             },
             "probeport": {
               "description": "probe port if probetype is tcp/udp/sctp",
@@ -3777,16 +6717,117 @@ func init() {
               "description": "value for access protocol",
               "type": "string"
             },
+            "proxyprotocolv2": {
+              "description": "flag to enable proxy protocol v2",
+              "type": "boolean"
+            },
+            "security": {
+              "description": "value for Security mode (0-Plain, 1-https, 1-tls, 2-e2ehttps, 0-default)",
+              "type": "integer",
+              "format": "int32",
+              "enum": [
+                0,
+                1,
+                2
+              ]
+            },
             "sel": {
-              "description": "value for load balance algorithim",
-              "type": "integer"
+              "description": "value for load balance algorithim(0-rr, 1-hash, 2-priority, 3-persist, 4-lc, 5-n2, 6-n3, 0-default)",
+              "type": "integer",
+              "enum": [
+                0,
+                1,
+                2,
+                3,
+                4,
+                5,
+                6
+              ]
+            },
+            "snat": {
+              "description": "snat rule",
+              "type": "boolean"
             }
           }
         }
       }
     },
+    "LogArchives": {
+      "type": "object",
+      "properties": {
+        "archives": {
+          "description": "List of log archive filenames.",
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "LoginResponse": {
+      "type": "object",
+      "properties": {
+        "token": {
+          "type": "string"
+        }
+      }
+    },
+    "Logs": {
+      "type": "object",
+      "properties": {
+        "logs": {
+          "description": "List of filtered logs.",
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "MessageResponse": {
+      "type": "object",
+      "properties": {
+        "message": {
+          "type": "string"
+        }
+      }
+    },
+    "MetricEntity": {
+      "type": "object",
+      "properties": {
+        "name": {
+          "description": "Metric Name",
+          "type": "string"
+        },
+        "service": {
+          "description": "Load Balancer Service Name",
+          "type": "string"
+        },
+        "value": {
+          "description": "Metric Value",
+          "type": "integer",
+          "format": "uint64"
+        }
+      }
+    },
+    "MetricsConfig": {
+      "type": "object",
+      "required": [
+        "prometheus"
+      ],
+      "properties": {
+        "prometheus": {
+          "description": "value for prometheus enable or not",
+          "type": "boolean"
+        }
+      }
+    },
     "MirrorEntry": {
       "type": "object",
+      "required": [
+        "mirrorIdent",
+        "targetObject"
+      ],
       "properties": {
         "mirrorIdent": {
           "description": "Mirror name",
@@ -3812,8 +6853,13 @@ func init() {
               "type": "integer"
             },
             "type": {
-              "description": "One of MirrTypeSpan, MirrTypeRspan or MirrTypeErspan",
-              "type": "integer"
+              "description": "One of MirrTypeSpan, MirrTypeRspan or MirrTypeErspan(0-MirrTypeSpan, 1-MirrTypeRspan, 2-MirrTypeErspan)",
+              "type": "integer",
+              "enum": [
+                0,
+                1,
+                2
+              ]
             },
             "vlan": {
               "description": "For RSPAN we may need to send tagged mirror traffic",
@@ -3823,6 +6869,10 @@ func init() {
         },
         "targetObject": {
           "type": "object",
+          "required": [
+            "attachment",
+            "mirrObjName"
+          ],
           "properties": {
             "attachment": {
               "description": "Target Attachment",
@@ -3896,6 +6946,11 @@ func init() {
     },
     "NeighborEntry": {
       "type": "object",
+      "required": [
+        "dev",
+        "ipAddress",
+        "macAddress"
+      ],
       "properties": {
         "dev": {
           "description": "Name of the interface device to which you want to add neighbor",
@@ -3911,17 +6966,149 @@ func init() {
         }
       }
     },
+    "NewFlowCountMetrics": {
+      "type": "object",
+      "properties": {
+        "new_flow_count": {
+          "type": "number"
+        }
+      }
+    },
+    "Node": {
+      "type": "object",
+      "properties": {
+        "color": {
+          "type": "string"
+        },
+        "icon": {
+          "type": "string"
+        },
+        "id": {
+          "type": "string"
+        },
+        "mainstat": {
+          "type": "number"
+        },
+        "nodeRadius": {
+          "type": "integer"
+        },
+        "secondarystat": {
+          "type": "number"
+        },
+        "subtitle": {
+          "type": "string"
+        },
+        "title": {
+          "type": "string"
+        }
+      }
+    },
+    "NodeGraphShcmea": {
+      "type": "object",
+      "properties": {
+        "edges": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/Edge"
+          }
+        },
+        "meta": {
+          "type": "object",
+          "properties": {
+            "preferredVisualisationType": {
+              "type": "string"
+            }
+          }
+        },
+        "nodes": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/Node"
+          }
+        },
+        "schemaVersion": {
+          "type": "integer"
+        }
+      }
+    },
+    "OauthErrorResponse": {
+      "type": "object",
+      "properties": {
+        "message": {
+          "type": "string"
+        }
+      }
+    },
+    "OauthLoginResponse": {
+      "type": "object",
+      "properties": {
+        "expiresin": {
+          "description": "The duration in seconds that the access token is valid for.",
+          "type": "integer"
+        },
+        "id": {
+          "description": "The unique identifier for the authenticated user (e.g., Google user ID).",
+          "type": "string"
+        },
+        "refreshtoken": {
+          "description": "The refresh token used to obtain new access tokens once the current one expires.",
+          "type": "string"
+        },
+        "token": {
+          "description": "The access token used for API requests. Typically expires after a short duration.",
+          "type": "string"
+        }
+      }
+    },
+    "OauthMessageResponse": {
+      "type": "object",
+      "properties": {
+        "message": {
+          "type": "string"
+        }
+      }
+    },
+    "OauthTokenResponse": {
+      "type": "object",
+      "properties": {
+        "expiresin": {
+          "description": "The duration in seconds that the access token is valid for.",
+          "type": "integer"
+        },
+        "token": {
+          "description": "The access token used for API requests. Typically expires after a short duration.",
+          "type": "string"
+        }
+      }
+    },
     "OperParams": {
       "type": "object",
+      "required": [
+        "logLevel"
+      ],
       "properties": {
         "logLevel": {
           "description": "Set level to debug,info,error,warning,notice,critical,emergency,alert",
-          "type": "string"
+          "type": "string",
+          "enum": [
+            "debug",
+            "info",
+            "error",
+            "warning",
+            "notice",
+            "critical",
+            "emergency",
+            "alert"
+          ]
         }
       }
     },
     "PolicyEntry": {
       "type": "object",
+      "required": [
+        "policyIdent",
+        "targetObject"
+      ],
       "properties": {
         "policyIdent": {
           "description": "Policy name",
@@ -3951,13 +7138,21 @@ func init() {
               "type": "integer"
             },
             "type": {
-              "description": "policy type",
-              "type": "integer"
+              "description": "policy type(0-TrTCM, 1-SrTCM)",
+              "type": "integer",
+              "enum": [
+                0,
+                1
+              ]
             }
           }
         },
         "targetObject": {
           "type": "object",
+          "required": [
+            "attachment",
+            "polObjName"
+          ],
           "properties": {
             "attachment": {
               "description": "Target Attachment",
@@ -4186,8 +7381,60 @@ func init() {
         }
       }
     },
+    "ProcessedTrafficMetrics": {
+      "type": "object",
+      "properties": {
+        "processed_bytes": {
+          "type": "number"
+        },
+        "processed_packets": {
+          "type": "number"
+        },
+        "processed_sctp_bytes": {
+          "type": "number"
+        },
+        "processed_tcp_bytes": {
+          "type": "number"
+        },
+        "processed_udp_bytes": {
+          "type": "number"
+        }
+      }
+    },
+    "ReqCountPerClientMetrics": {
+      "type": "object",
+      "additionalProperties": {
+        "type": "number"
+      }
+    },
+    "RequestCountMetrics": {
+      "type": "object",
+      "properties": {
+        "total_requests": {
+          "type": "number"
+        },
+        "total_requests_per_service": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "name": {
+                "type": "string"
+              },
+              "value": {
+                "type": "number"
+              }
+            }
+          }
+        }
+      }
+    },
     "RouteEntry": {
       "type": "object",
+      "required": [
+        "destinationIPNet",
+        "gateway"
+      ],
       "properties": {
         "destinationIPNet": {
           "description": "IP address and netmask",
@@ -4195,6 +7442,10 @@ func init() {
         },
         "gateway": {
           "description": "IP address for nexthop",
+          "type": "string"
+        },
+        "protocol": {
+          "description": "Protocol type of the route like \"static\"",
           "type": "string"
         }
       }
@@ -4220,7 +7471,7 @@ func init() {
         },
         "protocol": {
           "description": "Route protocol",
-          "type": "integer"
+          "type": "string"
         },
         "statistic": {
           "type": "object",
@@ -4244,8 +7495,25 @@ func init() {
         }
       }
     },
+    "ServiceDistTrafficMetrics": {
+      "type": "object",
+      "additionalProperties": {
+        "type": "object",
+        "properties": {
+          "ratio": {
+            "type": "number"
+          },
+          "value": {
+            "type": "number"
+          }
+        }
+      }
+    },
     "SessionEntry": {
       "type": "object",
+      "required": [
+        "ident"
+      ],
       "properties": {
         "accessNetworkTunnel": {
           "type": "object",
@@ -4285,6 +7553,9 @@ func init() {
     },
     "SessionUlClEntry": {
       "type": "object",
+      "required": [
+        "ulclIdent"
+      ],
       "properties": {
         "ulclArgument": {
           "type": "object",
@@ -4305,8 +7576,61 @@ func init() {
         }
       }
     },
+    "SuccessResponse": {
+      "type": "object",
+      "properties": {
+        "message": {
+          "type": "string"
+        }
+      }
+    },
+    "User": {
+      "type": "object",
+      "required": [
+        "id",
+        "username",
+        "password"
+      ],
+      "properties": {
+        "created_at": {
+          "type": "string"
+        },
+        "id": {
+          "type": "integer"
+        },
+        "password": {
+          "type": "string"
+        },
+        "role": {
+          "type": "string",
+          "enum": [
+            "admin",
+            "viewer"
+          ]
+        },
+        "username": {
+          "type": "string"
+        }
+      }
+    },
+    "VersionGetEntry": {
+      "type": "object",
+      "properties": {
+        "buildInfo": {
+          "description": "build info",
+          "type": "string"
+        },
+        "version": {
+          "description": "Instance name",
+          "type": "string"
+        }
+      }
+    },
     "VlanBridgeEntry": {
       "type": "object",
+      "required": [
+        "vid"
+      ],
       "properties": {
         "vid": {
           "description": "Vlan ID",
@@ -4365,6 +7689,10 @@ func init() {
     },
     "VxlanBridgeEntry": {
       "type": "object",
+      "required": [
+        "epIntf",
+        "vxlanID"
+      ],
       "properties": {
         "epIntf": {
           "type": "string"
@@ -4376,6 +7704,12 @@ func init() {
     },
     "VxlanEntry": {
       "type": "object",
+      "required": [
+        "vxlanName",
+        "epIntf",
+        "vxlanID",
+        "peerIP"
+      ],
       "properties": {
         "epIntf": {
           "type": "string"
@@ -4396,13 +7730,28 @@ func init() {
     },
     "VxlanPeerEntry": {
       "type": "object",
+      "required": [
+        "peerIP"
+      ],
       "properties": {
         "peerIP": {
           "type": "string"
         }
       }
     }
-  }
+  },
+  "securityDefinitions": {
+    "BearerAuth": {
+      "type": "apiKey",
+      "name": "Authorization",
+      "in": "header"
+    }
+  },
+  "security": [
+    {
+      "BearerAuth": []
+    }
+  ]
 }`))
 	FlatSwaggerJSON = json.RawMessage([]byte(`{
   "consumes": [
@@ -4424,6 +7773,444 @@ func init() {
   "host": "0.0.0.0:11111",
   "basePath": "/netlox/v1",
   "paths": {
+    "/auth/login": {
+      "post": {
+        "security": [],
+        "description": "Authenticates a user and returns a JWT token if the credentials are valid.",
+        "consumes": [
+          "application/json"
+        ],
+        "produces": [
+          "application/json"
+        ],
+        "tags": [
+          "auth"
+        ],
+        "summary": "User login",
+        "parameters": [
+          {
+            "description": "User credentials",
+            "name": "user",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/User"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "schema": {
+              "$ref": "#/definitions/LoginResponse"
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "schema": {
+              "$ref": "#/definitions/ErrorResponse"
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "schema": {
+              "$ref": "#/definitions/ErrorResponse"
+            }
+          },
+          "500": {
+            "description": "Internal Server Error",
+            "schema": {
+              "$ref": "#/definitions/ErrorResponse"
+            }
+          }
+        }
+      }
+    },
+    "/auth/logout": {
+      "post": {
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "description": "Invalidates the user's token and logs them out.",
+        "consumes": [
+          "application/json"
+        ],
+        "produces": [
+          "application/json"
+        ],
+        "tags": [
+          "auth"
+        ],
+        "summary": "User logout",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "schema": {
+              "$ref": "#/definitions/MessageResponse"
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "schema": {
+              "$ref": "#/definitions/ErrorResponse"
+            }
+          },
+          "500": {
+            "description": "Internal Server Error",
+            "schema": {
+              "$ref": "#/definitions/ErrorResponse"
+            }
+          }
+        }
+      }
+    },
+    "/auth/users": {
+      "get": {
+        "description": "Retrieves all users from the database and returns them as a JSON response.",
+        "produces": [
+          "application/json"
+        ],
+        "tags": [
+          "users"
+        ],
+        "summary": "Fetch all users",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "schema": {
+              "type": "array",
+              "items": {
+                "$ref": "#/definitions/User"
+              }
+            }
+          },
+          "500": {
+            "description": "Internal Server Error",
+            "schema": {
+              "$ref": "#/definitions/ErrorResponse"
+            }
+          }
+        }
+      },
+      "post": {
+        "security": [],
+        "description": "Creates a new user in the system",
+        "consumes": [
+          "application/json"
+        ],
+        "produces": [
+          "application/json"
+        ],
+        "tags": [
+          "users"
+        ],
+        "summary": "Create a new user",
+        "parameters": [
+          {
+            "description": "User data",
+            "name": "user",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/User"
+            }
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": "Created",
+            "schema": {
+              "$ref": "#/definitions/User"
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "schema": {
+              "$ref": "#/definitions/ErrorResponse"
+            }
+          },
+          "500": {
+            "description": "Internal Server Error",
+            "schema": {
+              "$ref": "#/definitions/ErrorResponse"
+            }
+          }
+        }
+      }
+    },
+    "/auth/users/{id}": {
+      "put": {
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "description": "Updates an existing user with the provided JSON payload",
+        "consumes": [
+          "application/json"
+        ],
+        "produces": [
+          "application/json"
+        ],
+        "tags": [
+          "users"
+        ],
+        "summary": "Update user",
+        "parameters": [
+          {
+            "type": "integer",
+            "description": "User ID",
+            "name": "id",
+            "in": "path",
+            "required": true
+          },
+          {
+            "description": "User data",
+            "name": "user",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/User"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "schema": {
+              "$ref": "#/definitions/User"
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "schema": {
+              "$ref": "#/definitions/ErrorResponse"
+            }
+          },
+          "500": {
+            "description": "Internal Server Error",
+            "schema": {
+              "$ref": "#/definitions/ErrorResponse"
+            }
+          }
+        }
+      },
+      "delete": {
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "description": "Deletes a user by its ID",
+        "consumes": [
+          "application/json"
+        ],
+        "produces": [
+          "application/json"
+        ],
+        "tags": [
+          "users"
+        ],
+        "summary": "Delete user",
+        "parameters": [
+          {
+            "type": "integer",
+            "description": "User ID",
+            "name": "id",
+            "in": "path",
+            "required": true
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "schema": {
+              "$ref": "#/definitions/MessageResponse"
+            }
+          },
+          "500": {
+            "description": "Internal Server Error",
+            "schema": {
+              "$ref": "#/definitions/ErrorResponse"
+            }
+          }
+        }
+      }
+    },
+    "/config/bfd": {
+      "post": {
+        "description": "Create vlan interface in the device",
+        "summary": "Create vlan interface in the device",
+        "parameters": [
+          {
+            "description": "Attributes for Vlan Interface",
+            "name": "attr",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/BfdEntry"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "OK"
+          },
+          "400": {
+            "description": "Malformed arguments for API call",
+            "schema": {
+              "$ref": "#/definitions/Error"
+            }
+          },
+          "401": {
+            "description": "Invalid authentication credentials",
+            "schema": {
+              "$ref": "#/definitions/Error"
+            }
+          },
+          "403": {
+            "description": "Capacity insufficient",
+            "schema": {
+              "$ref": "#/definitions/Error"
+            }
+          },
+          "404": {
+            "description": "Resource not found",
+            "schema": {
+              "$ref": "#/definitions/Error"
+            }
+          },
+          "409": {
+            "description": "Resource Conflict. BFD session not found",
+            "schema": {
+              "$ref": "#/definitions/Error"
+            }
+          },
+          "500": {
+            "description": "Internal service error",
+            "schema": {
+              "$ref": "#/definitions/Error"
+            }
+          },
+          "503": {
+            "description": "Maintenance mode",
+            "schema": {
+              "$ref": "#/definitions/Error"
+            }
+          }
+        }
+      }
+    },
+    "/config/bfd/all": {
+      "get": {
+        "description": "Get BFD session inforrmation",
+        "summary": "Get BFD session inforrmation in the device",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "schema": {
+              "type": "object",
+              "properties": {
+                "Attr": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/definitions/BfdGetEntry"
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Invalid authentication credentials",
+            "schema": {
+              "$ref": "#/definitions/Error"
+            }
+          },
+          "500": {
+            "description": "Internal service error",
+            "schema": {
+              "$ref": "#/definitions/Error"
+            }
+          },
+          "503": {
+            "description": "Maintenance mode",
+            "schema": {
+              "$ref": "#/definitions/Error"
+            }
+          }
+        }
+      }
+    },
+    "/config/bfd/remoteIP/{remote_ip}": {
+      "delete": {
+        "description": "Delete a BFD session",
+        "summary": "Delete a BFD session",
+        "parameters": [
+          {
+            "type": "string",
+            "description": "Remote IP address",
+            "name": "remote_ip",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "string",
+            "description": "Cluster instance name",
+            "name": "instance",
+            "in": "query"
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "OK"
+          },
+          "400": {
+            "description": "Malformed arguments for API call",
+            "schema": {
+              "$ref": "#/definitions/Error"
+            }
+          },
+          "401": {
+            "description": "Invalid authentication credentials",
+            "schema": {
+              "$ref": "#/definitions/Error"
+            }
+          },
+          "403": {
+            "description": "Capacity insufficient",
+            "schema": {
+              "$ref": "#/definitions/Error"
+            }
+          },
+          "404": {
+            "description": "Resource not found",
+            "schema": {
+              "$ref": "#/definitions/Error"
+            }
+          },
+          "409": {
+            "description": "Resource Conflict. BFD session already exists",
+            "schema": {
+              "$ref": "#/definitions/Error"
+            }
+          },
+          "500": {
+            "description": "Internal service error",
+            "schema": {
+              "$ref": "#/definitions/Error"
+            }
+          },
+          "503": {
+            "description": "Maintenance mode",
+            "schema": {
+              "$ref": "#/definitions/Error"
+            }
+          }
+        }
+      }
+    },
     "/config/bgp/global": {
       "post": {
         "description": "Adds a BGP global config",
@@ -4480,7 +8267,7 @@ func init() {
             }
           },
           "503": {
-            "description": "Maintanence mode",
+            "description": "Maintenance mode",
             "schema": {
               "$ref": "#/definitions/Error"
             }
@@ -4544,7 +8331,74 @@ func init() {
             }
           },
           "503": {
-            "description": "Maintanence mode",
+            "description": "Maintenance mode",
+            "schema": {
+              "$ref": "#/definitions/Error"
+            }
+          }
+        }
+      }
+    },
+    "/config/bgp/neigh/all": {
+      "get": {
+        "description": "Get the all of BGP Neighbor",
+        "summary": "Get the all of BGP Neighbor",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "schema": {
+              "type": "object",
+              "properties": {
+                "bgpNeiAttr": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/definitions/BGPNeighGetEntry"
+                  }
+                }
+              }
+            }
+          },
+          "204": {
+            "description": "OK"
+          },
+          "400": {
+            "description": "Malformed arguments for API call",
+            "schema": {
+              "$ref": "#/definitions/Error"
+            }
+          },
+          "401": {
+            "description": "Invalid authentication credentials",
+            "schema": {
+              "$ref": "#/definitions/Error"
+            }
+          },
+          "403": {
+            "description": "Capacity insufficient",
+            "schema": {
+              "$ref": "#/definitions/Error"
+            }
+          },
+          "404": {
+            "description": "Resource not found",
+            "schema": {
+              "$ref": "#/definitions/Error"
+            }
+          },
+          "409": {
+            "description": "Resource Conflict. VLAN already exists OR dependency VRF/VNET not found",
+            "schema": {
+              "$ref": "#/definitions/Error"
+            }
+          },
+          "500": {
+            "description": "Internal service error",
+            "schema": {
+              "$ref": "#/definitions/Error"
+            }
+          },
+          "503": {
+            "description": "Maintenance mode",
             "schema": {
               "$ref": "#/definitions/Error"
             }
@@ -4613,7 +8467,520 @@ func init() {
             }
           },
           "503": {
-            "description": "Maintanence mode",
+            "description": "Maintenance mode",
+            "schema": {
+              "$ref": "#/definitions/Error"
+            }
+          }
+        }
+      }
+    },
+    "/config/bgp/policy/apply": {
+      "post": {
+        "description": "Apply BGP Policy in neighbor",
+        "summary": "Apply BGP Policy in neighbor",
+        "parameters": [
+          {
+            "description": "Attributes of bgp neighbor",
+            "name": "attr",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/BGPApplyPolicyToNeighborMod"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "OK"
+          },
+          "400": {
+            "description": "Malformed arguments for API call",
+            "schema": {
+              "$ref": "#/definitions/Error"
+            }
+          },
+          "401": {
+            "description": "Invalid authentication credentials",
+            "schema": {
+              "$ref": "#/definitions/Error"
+            }
+          },
+          "403": {
+            "description": "Capacity insufficient",
+            "schema": {
+              "$ref": "#/definitions/Error"
+            }
+          },
+          "404": {
+            "description": "Resource not found",
+            "schema": {
+              "$ref": "#/definitions/Error"
+            }
+          },
+          "409": {
+            "description": "Resource Conflict.",
+            "schema": {
+              "$ref": "#/definitions/Error"
+            }
+          },
+          "500": {
+            "description": "Internal service error",
+            "schema": {
+              "$ref": "#/definitions/Error"
+            }
+          },
+          "503": {
+            "description": "Maintenance mode",
+            "schema": {
+              "$ref": "#/definitions/Error"
+            }
+          }
+        }
+      },
+      "delete": {
+        "description": "Delete BGP Policy in neighbor. It don't need \"routeAction\" in the attr body",
+        "summary": "Delete BGP Policy in neighbor",
+        "parameters": [
+          {
+            "description": "Attributes of bgp neighbor",
+            "name": "attr",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/BGPApplyPolicyToNeighborMod"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "OK"
+          },
+          "400": {
+            "description": "Malformed arguments for API call",
+            "schema": {
+              "$ref": "#/definitions/Error"
+            }
+          },
+          "401": {
+            "description": "Invalid authentication credentials",
+            "schema": {
+              "$ref": "#/definitions/Error"
+            }
+          },
+          "403": {
+            "description": "Capacity insufficient",
+            "schema": {
+              "$ref": "#/definitions/Error"
+            }
+          },
+          "404": {
+            "description": "Resource not found",
+            "schema": {
+              "$ref": "#/definitions/Error"
+            }
+          },
+          "409": {
+            "description": "Resource Conflict. Neigh already exists",
+            "schema": {
+              "$ref": "#/definitions/Error"
+            }
+          },
+          "500": {
+            "description": "Internal service error",
+            "schema": {
+              "$ref": "#/definitions/Error"
+            }
+          },
+          "503": {
+            "description": "Maintenance mode",
+            "schema": {
+              "$ref": "#/definitions/Error"
+            }
+          }
+        }
+      }
+    },
+    "/config/bgp/policy/definedsets/{defineset_type}": {
+      "post": {
+        "description": "Adds a BGP definedsets for making Policy",
+        "summary": "Adds a BGP  definedsets for making Policy",
+        "parameters": [
+          {
+            "type": "string",
+            "description": "defineset type one of prefix/neighbor/community/extcommunity/aspath/largecommunity",
+            "name": "defineset_type",
+            "in": "path",
+            "required": true
+          },
+          {
+            "description": "Attributes of bgp neighbor",
+            "name": "attr",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/BGPPolicyDefinedSetsMod"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "OK"
+          },
+          "400": {
+            "description": "Malformed arguments for API call",
+            "schema": {
+              "$ref": "#/definitions/Error"
+            }
+          },
+          "401": {
+            "description": "Invalid authentication credentials",
+            "schema": {
+              "$ref": "#/definitions/Error"
+            }
+          },
+          "403": {
+            "description": "Capacity insufficient",
+            "schema": {
+              "$ref": "#/definitions/Error"
+            }
+          },
+          "404": {
+            "description": "Resource not found",
+            "schema": {
+              "$ref": "#/definitions/Error"
+            }
+          },
+          "409": {
+            "description": "Resource Conflict.",
+            "schema": {
+              "$ref": "#/definitions/Error"
+            }
+          },
+          "500": {
+            "description": "Internal service error",
+            "schema": {
+              "$ref": "#/definitions/Error"
+            }
+          },
+          "503": {
+            "description": "Maintenance mode",
+            "schema": {
+              "$ref": "#/definitions/Error"
+            }
+          }
+        }
+      }
+    },
+    "/config/bgp/policy/definedsets/{defineset_type}/{type_name}": {
+      "get": {
+        "description": "Get the all of BGP, prefix/neighbor/community/extcommunity/aspath/largecommunity",
+        "summary": "Get the all of BGP definedsets",
+        "parameters": [
+          {
+            "type": "string",
+            "description": "defineset type one of prefix/neighbor/community/extcommunity/aspath/largecommunity",
+            "name": "defineset_type",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "string",
+            "description": "type name",
+            "name": "type_name",
+            "in": "path",
+            "required": true
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "schema": {
+              "type": "object",
+              "properties": {
+                "definedsetsAttr": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/definitions/BGPPolicyDefinedSetGetEntry"
+                  }
+                }
+              }
+            }
+          },
+          "204": {
+            "description": "OK"
+          },
+          "400": {
+            "description": "Malformed arguments for API call",
+            "schema": {
+              "$ref": "#/definitions/Error"
+            }
+          },
+          "401": {
+            "description": "Invalid authentication credentials",
+            "schema": {
+              "$ref": "#/definitions/Error"
+            }
+          },
+          "403": {
+            "description": "Capacity insufficient",
+            "schema": {
+              "$ref": "#/definitions/Error"
+            }
+          },
+          "404": {
+            "description": "Resource not found",
+            "schema": {
+              "$ref": "#/definitions/Error"
+            }
+          },
+          "409": {
+            "description": "Resource Conflict. VLAN already exists OR dependency VRF/VNET not found",
+            "schema": {
+              "$ref": "#/definitions/Error"
+            }
+          },
+          "500": {
+            "description": "Internal service error",
+            "schema": {
+              "$ref": "#/definitions/Error"
+            }
+          },
+          "503": {
+            "description": "Maintenance mode",
+            "schema": {
+              "$ref": "#/definitions/Error"
+            }
+          }
+        }
+      },
+      "delete": {
+        "description": "Delete a BGP definedsets",
+        "summary": "Delete a BGP definedsets",
+        "parameters": [
+          {
+            "type": "string",
+            "description": "defineset type one of prefix/neighbor/community/extcommunity/aspath/largecommunity",
+            "name": "defineset_type",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "string",
+            "description": "type name",
+            "name": "type_name",
+            "in": "path",
+            "required": true
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "OK"
+          },
+          "400": {
+            "description": "Malformed arguments for API call",
+            "schema": {
+              "$ref": "#/definitions/Error"
+            }
+          },
+          "401": {
+            "description": "Invalid authentication credentials",
+            "schema": {
+              "$ref": "#/definitions/Error"
+            }
+          },
+          "403": {
+            "description": "Capacity insufficient",
+            "schema": {
+              "$ref": "#/definitions/Error"
+            }
+          },
+          "404": {
+            "description": "Resource not found",
+            "schema": {
+              "$ref": "#/definitions/Error"
+            }
+          },
+          "409": {
+            "description": "Resource Conflict. Neigh already exists",
+            "schema": {
+              "$ref": "#/definitions/Error"
+            }
+          },
+          "500": {
+            "description": "Internal service error",
+            "schema": {
+              "$ref": "#/definitions/Error"
+            }
+          },
+          "503": {
+            "description": "Maintenance mode",
+            "schema": {
+              "$ref": "#/definitions/Error"
+            }
+          }
+        }
+      }
+    },
+    "/config/bgp/policy/definitions": {
+      "post": {
+        "description": "Adds a BGP Policy",
+        "summary": "Adds a BGP Policy",
+        "parameters": [
+          {
+            "description": "Attributes of bgp neighbor",
+            "name": "attr",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/BGPPolicyDefinitionsMod"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "OK"
+          },
+          "400": {
+            "description": "Malformed arguments for API call",
+            "schema": {
+              "$ref": "#/definitions/Error"
+            }
+          },
+          "401": {
+            "description": "Invalid authentication credentials",
+            "schema": {
+              "$ref": "#/definitions/Error"
+            }
+          },
+          "403": {
+            "description": "Capacity insufficient",
+            "schema": {
+              "$ref": "#/definitions/Error"
+            }
+          },
+          "404": {
+            "description": "Resource not found",
+            "schema": {
+              "$ref": "#/definitions/Error"
+            }
+          },
+          "409": {
+            "description": "Resource Conflict.",
+            "schema": {
+              "$ref": "#/definitions/Error"
+            }
+          },
+          "500": {
+            "description": "Internal service error",
+            "schema": {
+              "$ref": "#/definitions/Error"
+            }
+          },
+          "503": {
+            "description": "Maintenance mode",
+            "schema": {
+              "$ref": "#/definitions/Error"
+            }
+          }
+        }
+      }
+    },
+    "/config/bgp/policy/definitions/all": {
+      "get": {
+        "description": "Get BGP Policy definitions",
+        "summary": "Get BGP Policy definitions",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "schema": {
+              "type": "object",
+              "properties": {
+                "bgpPolicyAttr": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/definitions/BGPPolicyDefinitionsMod"
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Invalid authentication credentials",
+            "schema": {
+              "$ref": "#/definitions/Error"
+            }
+          },
+          "500": {
+            "description": "Internal service error",
+            "schema": {
+              "$ref": "#/definitions/Error"
+            }
+          },
+          "503": {
+            "description": "Maintenance mode",
+            "schema": {
+              "$ref": "#/definitions/Error"
+            }
+          }
+        }
+      }
+    },
+    "/config/bgp/policy/definitions/{policy_name}": {
+      "delete": {
+        "description": "Delete a BGP Policy",
+        "summary": "Delete a BGP policy",
+        "parameters": [
+          {
+            "type": "string",
+            "description": "The name of the community",
+            "name": "policy_name",
+            "in": "path",
+            "required": true
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "OK"
+          },
+          "400": {
+            "description": "Malformed arguments for API call",
+            "schema": {
+              "$ref": "#/definitions/Error"
+            }
+          },
+          "401": {
+            "description": "Invalid authentication credentials",
+            "schema": {
+              "$ref": "#/definitions/Error"
+            }
+          },
+          "403": {
+            "description": "Capacity insufficient",
+            "schema": {
+              "$ref": "#/definitions/Error"
+            }
+          },
+          "404": {
+            "description": "Resource not found",
+            "schema": {
+              "$ref": "#/definitions/Error"
+            }
+          },
+          "409": {
+            "description": "Resource Conflict. Neigh already exists",
+            "schema": {
+              "$ref": "#/definitions/Error"
+            }
+          },
+          "500": {
+            "description": "Internal service error",
+            "schema": {
+              "$ref": "#/definitions/Error"
+            }
+          },
+          "503": {
+            "description": "Maintenance mode",
             "schema": {
               "$ref": "#/definitions/Error"
             }
@@ -4677,7 +9044,7 @@ func init() {
             }
           },
           "503": {
-            "description": "Maintanence mode",
+            "description": "Maintenance mode",
             "schema": {
               "$ref": "#/definitions/Error"
             }
@@ -4717,7 +9084,7 @@ func init() {
             }
           },
           "503": {
-            "description": "Maintanence mode",
+            "description": "Maintenance mode",
             "schema": {
               "$ref": "#/definitions/Error"
             }
@@ -4757,7 +9124,7 @@ func init() {
             }
           },
           "503": {
-            "description": "Maintanence mode",
+            "description": "Maintenance mode",
             "schema": {
               "$ref": "#/definitions/Error"
             }
@@ -4821,7 +9188,7 @@ func init() {
             }
           },
           "503": {
-            "description": "Maintanence mode",
+            "description": "Maintenance mode",
             "schema": {
               "$ref": "#/definitions/Error"
             }
@@ -4861,7 +9228,7 @@ func init() {
             }
           },
           "503": {
-            "description": "Maintanence mode",
+            "description": "Maintenance mode",
             "schema": {
               "$ref": "#/definitions/Error"
             }
@@ -4941,7 +9308,71 @@ func init() {
             }
           },
           "503": {
-            "description": "Maintanence mode",
+            "description": "Maintenance mode",
+            "schema": {
+              "$ref": "#/definitions/Error"
+            }
+          }
+        }
+      }
+    },
+    "/config/endpointhoststate": {
+      "post": {
+        "description": "Sets the state of a host which can have multiple endpoints",
+        "summary": "Sets the state of a host",
+        "parameters": [
+          {
+            "description": "Attributes of end point",
+            "name": "attr",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/EndPointHostState"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "OK"
+          },
+          "400": {
+            "description": "Malformed arguments for API call",
+            "schema": {
+              "$ref": "#/definitions/Error"
+            }
+          },
+          "401": {
+            "description": "Invalid authentication credentials",
+            "schema": {
+              "$ref": "#/definitions/Error"
+            }
+          },
+          "403": {
+            "description": "Capacity insufficient",
+            "schema": {
+              "$ref": "#/definitions/Error"
+            }
+          },
+          "404": {
+            "description": "Resource not found",
+            "schema": {
+              "$ref": "#/definitions/Error"
+            }
+          },
+          "409": {
+            "description": "Resource Conflict.",
+            "schema": {
+              "$ref": "#/definitions/Error"
+            }
+          },
+          "500": {
+            "description": "Internal service error",
+            "schema": {
+              "$ref": "#/definitions/Error"
+            }
+          },
+          "503": {
+            "description": "Maintenance mode",
             "schema": {
               "$ref": "#/definitions/Error"
             }
@@ -5005,7 +9436,7 @@ func init() {
             }
           },
           "503": {
-            "description": "Maintanence mode",
+            "description": "Maintenance mode",
             "schema": {
               "$ref": "#/definitions/Error"
             }
@@ -5045,7 +9476,7 @@ func init() {
             }
           },
           "503": {
-            "description": "Maintanence mode",
+            "description": "Maintenance mode",
             "schema": {
               "$ref": "#/definitions/Error"
             }
@@ -5114,7 +9545,7 @@ func init() {
             }
           },
           "503": {
-            "description": "Maintanence mode",
+            "description": "Maintenance mode",
             "schema": {
               "$ref": "#/definitions/Error"
             }
@@ -5178,7 +9609,7 @@ func init() {
             }
           },
           "503": {
-            "description": "Maintanence mode",
+            "description": "Maintenance mode",
             "schema": {
               "$ref": "#/definitions/Error"
             }
@@ -5285,7 +9716,7 @@ func init() {
             }
           },
           "503": {
-            "description": "Maintanence mode",
+            "description": "Maintenance mode",
             "schema": {
               "$ref": "#/definitions/Error"
             }
@@ -5325,7 +9756,7 @@ func init() {
             }
           },
           "503": {
-            "description": "Maintanence mode",
+            "description": "Maintenance mode",
             "schema": {
               "$ref": "#/definitions/Error"
             }
@@ -5389,7 +9820,7 @@ func init() {
             }
           },
           "503": {
-            "description": "Maintanence mode",
+            "description": "Maintenance mode",
             "schema": {
               "$ref": "#/definitions/Error"
             }
@@ -5429,7 +9860,7 @@ func init() {
             }
           },
           "503": {
-            "description": "Maintanence mode",
+            "description": "Maintenance mode",
             "schema": {
               "$ref": "#/definitions/Error"
             }
@@ -5505,7 +9936,7 @@ func init() {
             }
           },
           "503": {
-            "description": "Maintanence mode",
+            "description": "Maintenance mode",
             "schema": {
               "$ref": "#/definitions/Error"
             }
@@ -5572,7 +10003,7 @@ func init() {
             }
           },
           "503": {
-            "description": "Maintanence mode",
+            "description": "Maintenance mode",
             "schema": {
               "$ref": "#/definitions/Error"
             }
@@ -5612,7 +10043,7 @@ func init() {
             }
           },
           "503": {
-            "description": "Maintanence mode",
+            "description": "Maintenance mode",
             "schema": {
               "$ref": "#/definitions/Error"
             }
@@ -5663,7 +10094,102 @@ func init() {
             }
           },
           "503": {
-            "description": "Maintanence mode",
+            "description": "Maintenance mode",
+            "schema": {
+              "$ref": "#/definitions/Error"
+            }
+          }
+        }
+      }
+    },
+    "/config/loadbalancer/externalipaddress/{ip_address}/port/{port}/portmax/{portmax}/protocol/{proto}": {
+      "delete": {
+        "description": "Delete an existing load balancer service with .",
+        "summary": "Delete an existing Load balancer service",
+        "parameters": [
+          {
+            "type": "string",
+            "description": "Attributes for load balance service",
+            "name": "ip_address",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "number",
+            "description": "Attributes for load balance service",
+            "name": "port",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "number",
+            "description": "Attributes for load balance service",
+            "name": "portmax",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "string",
+            "description": "Attributes for load balance service",
+            "name": "proto",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "boolean",
+            "description": "option for BGP enable",
+            "name": "bgp",
+            "in": "query"
+          },
+          {
+            "type": "number",
+            "description": "block value if any",
+            "name": "block",
+            "in": "query"
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "OK"
+          },
+          "400": {
+            "description": "Malformed arguments for API call",
+            "schema": {
+              "$ref": "#/definitions/Error"
+            }
+          },
+          "401": {
+            "description": "Invalid authentication credentials",
+            "schema": {
+              "$ref": "#/definitions/Error"
+            }
+          },
+          "403": {
+            "description": "Capacity insufficient",
+            "schema": {
+              "$ref": "#/definitions/Error"
+            }
+          },
+          "404": {
+            "description": "Resource not found",
+            "schema": {
+              "$ref": "#/definitions/Error"
+            }
+          },
+          "409": {
+            "description": "Resource Conflict. VLAN already exists OR dependency VRF/VNET not found",
+            "schema": {
+              "$ref": "#/definitions/Error"
+            }
+          },
+          "500": {
+            "description": "Internal service error",
+            "schema": {
+              "$ref": "#/definitions/Error"
+            }
+          },
+          "503": {
+            "description": "Maintenance mode",
             "schema": {
               "$ref": "#/definitions/Error"
             }
@@ -5751,7 +10277,367 @@ func init() {
             }
           },
           "503": {
-            "description": "Maintanence mode",
+            "description": "Maintenance mode",
+            "schema": {
+              "$ref": "#/definitions/Error"
+            }
+          }
+        }
+      }
+    },
+    "/config/loadbalancer/hosturl/{hosturl}/externalipaddress/{ip_address}/port/{port}/portmax/{portmax}/protocol/{proto}": {
+      "delete": {
+        "description": "Delete an existing load balancer service with .",
+        "summary": "Delete an existing Load balancer service",
+        "parameters": [
+          {
+            "type": "string",
+            "description": "Attributes for load balance service",
+            "name": "hosturl",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "string",
+            "description": "Attributes for load balance service",
+            "name": "ip_address",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "number",
+            "description": "Attributes for load balance service",
+            "name": "port",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "number",
+            "description": "Attributes for load balance service",
+            "name": "portmax",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "string",
+            "description": "Attributes for load balance service",
+            "name": "proto",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "boolean",
+            "description": "option for BGP enable",
+            "name": "bgp",
+            "in": "query"
+          },
+          {
+            "type": "number",
+            "description": "block value if any",
+            "name": "block",
+            "in": "query"
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "OK"
+          },
+          "400": {
+            "description": "Malformed arguments for API call",
+            "schema": {
+              "$ref": "#/definitions/Error"
+            }
+          },
+          "401": {
+            "description": "Invalid authentication credentials",
+            "schema": {
+              "$ref": "#/definitions/Error"
+            }
+          },
+          "403": {
+            "description": "Capacity insufficient",
+            "schema": {
+              "$ref": "#/definitions/Error"
+            }
+          },
+          "404": {
+            "description": "Resource not found",
+            "schema": {
+              "$ref": "#/definitions/Error"
+            }
+          },
+          "409": {
+            "description": "Resource Conflict. VLAN already exists OR dependency VRF/VNET not found",
+            "schema": {
+              "$ref": "#/definitions/Error"
+            }
+          },
+          "500": {
+            "description": "Internal service error",
+            "schema": {
+              "$ref": "#/definitions/Error"
+            }
+          },
+          "503": {
+            "description": "Maintenance mode",
+            "schema": {
+              "$ref": "#/definitions/Error"
+            }
+          }
+        }
+      }
+    },
+    "/config/loadbalancer/hosturl/{hosturl}/externalipaddress/{ip_address}/port/{port}/protocol/{proto}": {
+      "delete": {
+        "description": "Delete an existing load balancer service with .",
+        "summary": "Delete an existing Load balancer service",
+        "parameters": [
+          {
+            "type": "string",
+            "description": "Attributes for load balance service",
+            "name": "hosturl",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "string",
+            "description": "Attributes for load balance service",
+            "name": "ip_address",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "number",
+            "description": "Attributes for load balance service",
+            "name": "port",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "string",
+            "description": "Attributes for load balance service",
+            "name": "proto",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "boolean",
+            "description": "option for BGP enable",
+            "name": "bgp",
+            "in": "query"
+          },
+          {
+            "type": "number",
+            "description": "block value if any",
+            "name": "block",
+            "in": "query"
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "OK"
+          },
+          "400": {
+            "description": "Malformed arguments for API call",
+            "schema": {
+              "$ref": "#/definitions/Error"
+            }
+          },
+          "401": {
+            "description": "Invalid authentication credentials",
+            "schema": {
+              "$ref": "#/definitions/Error"
+            }
+          },
+          "403": {
+            "description": "Capacity insufficient",
+            "schema": {
+              "$ref": "#/definitions/Error"
+            }
+          },
+          "404": {
+            "description": "Resource not found",
+            "schema": {
+              "$ref": "#/definitions/Error"
+            }
+          },
+          "409": {
+            "description": "Resource Conflict. VLAN already exists OR dependency VRF/VNET not found",
+            "schema": {
+              "$ref": "#/definitions/Error"
+            }
+          },
+          "500": {
+            "description": "Internal service error",
+            "schema": {
+              "$ref": "#/definitions/Error"
+            }
+          },
+          "503": {
+            "description": "Maintenance mode",
+            "schema": {
+              "$ref": "#/definitions/Error"
+            }
+          }
+        }
+      }
+    },
+    "/config/loadbalancer/name/{lb_name}": {
+      "delete": {
+        "description": "Delete an existing load balancer service with name.",
+        "summary": "Delete an existing Load balancer service",
+        "parameters": [
+          {
+            "type": "string",
+            "description": "Attributes for load balance service name",
+            "name": "lb_name",
+            "in": "path",
+            "required": true
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "OK"
+          },
+          "400": {
+            "description": "Malformed arguments for API call",
+            "schema": {
+              "$ref": "#/definitions/Error"
+            }
+          },
+          "401": {
+            "description": "Invalid authentication credentials",
+            "schema": {
+              "$ref": "#/definitions/Error"
+            }
+          },
+          "403": {
+            "description": "Capacity insufficient",
+            "schema": {
+              "$ref": "#/definitions/Error"
+            }
+          },
+          "404": {
+            "description": "Resource not found",
+            "schema": {
+              "$ref": "#/definitions/Error"
+            }
+          },
+          "409": {
+            "description": "Resource Conflict. VLAN already exists OR dependency VRF/VNET not found",
+            "schema": {
+              "$ref": "#/definitions/Error"
+            }
+          },
+          "500": {
+            "description": "Internal service error",
+            "schema": {
+              "$ref": "#/definitions/Error"
+            }
+          },
+          "503": {
+            "description": "Maintenance mode",
+            "schema": {
+              "$ref": "#/definitions/Error"
+            }
+          }
+        }
+      }
+    },
+    "/config/metrics": {
+      "get": {
+        "summary": "Get prometheus config value",
+        "responses": {
+          "200": {
+            "description": "prometheus config value",
+            "schema": {
+              "$ref": "#/definitions/MetricsConfig"
+            }
+          },
+          "400": {
+            "description": "Malformed arguments for API call",
+            "schema": {
+              "$ref": "#/definitions/Error"
+            }
+          },
+          "401": {
+            "description": "Invalid authentication credentials",
+            "schema": {
+              "$ref": "#/definitions/Error"
+            }
+          },
+          "500": {
+            "description": "Internal service error",
+            "schema": {
+              "$ref": "#/definitions/Error"
+            }
+          },
+          "503": {
+            "description": "Maintenance mode",
+            "schema": {
+              "$ref": "#/definitions/Error"
+            }
+          }
+        }
+      },
+      "post": {
+        "summary": "turn on prometheus option",
+        "responses": {
+          "204": {
+            "description": "OK"
+          },
+          "400": {
+            "description": "Malformed arguments for API call",
+            "schema": {
+              "$ref": "#/definitions/Error"
+            }
+          },
+          "401": {
+            "description": "Invalid authentication credentials",
+            "schema": {
+              "$ref": "#/definitions/Error"
+            }
+          },
+          "500": {
+            "description": "Internal service error",
+            "schema": {
+              "$ref": "#/definitions/Error"
+            }
+          },
+          "503": {
+            "description": "Maintenance mode",
+            "schema": {
+              "$ref": "#/definitions/Error"
+            }
+          }
+        }
+      },
+      "delete": {
+        "summary": "turn off prometheus option",
+        "responses": {
+          "204": {
+            "description": "OK"
+          },
+          "400": {
+            "description": "Malformed arguments for API call",
+            "schema": {
+              "$ref": "#/definitions/Error"
+            }
+          },
+          "401": {
+            "description": "Invalid authentication credentials",
+            "schema": {
+              "$ref": "#/definitions/Error"
+            }
+          },
+          "500": {
+            "description": "Internal service error",
+            "schema": {
+              "$ref": "#/definitions/Error"
+            }
+          },
+          "503": {
+            "description": "Maintenance mode",
             "schema": {
               "$ref": "#/definitions/Error"
             }
@@ -5815,7 +10701,7 @@ func init() {
             }
           },
           "503": {
-            "description": "Maintanence mode",
+            "description": "Maintenance mode",
             "schema": {
               "$ref": "#/definitions/Error"
             }
@@ -5855,7 +10741,7 @@ func init() {
             }
           },
           "503": {
-            "description": "Maintanence mode",
+            "description": "Maintenance mode",
             "schema": {
               "$ref": "#/definitions/Error"
             }
@@ -5917,7 +10803,7 @@ func init() {
             }
           },
           "503": {
-            "description": "Maintanence mode",
+            "description": "Maintenance mode",
             "schema": {
               "$ref": "#/definitions/Error"
             }
@@ -5981,7 +10867,7 @@ func init() {
             }
           },
           "503": {
-            "description": "Maintanence mode",
+            "description": "Maintenance mode",
             "schema": {
               "$ref": "#/definitions/Error"
             }
@@ -6021,7 +10907,7 @@ func init() {
             }
           },
           "503": {
-            "description": "Maintanence mode",
+            "description": "Maintenance mode",
             "schema": {
               "$ref": "#/definitions/Error"
             }
@@ -6090,7 +10976,7 @@ func init() {
             }
           },
           "503": {
-            "description": "Maintanence mode",
+            "description": "Maintenance mode",
             "schema": {
               "$ref": "#/definitions/Error"
             }
@@ -6149,7 +11035,7 @@ func init() {
             }
           },
           "503": {
-            "description": "Maintanence mode",
+            "description": "Maintenance mode",
             "schema": {
               "$ref": "#/definitions/Error"
             }
@@ -6211,7 +11097,7 @@ func init() {
             }
           },
           "503": {
-            "description": "Maintanence mode",
+            "description": "Maintenance mode",
             "schema": {
               "$ref": "#/definitions/Error"
             }
@@ -6275,7 +11161,7 @@ func init() {
             }
           },
           "503": {
-            "description": "Maintanence mode",
+            "description": "Maintenance mode",
             "schema": {
               "$ref": "#/definitions/Error"
             }
@@ -6315,7 +11201,7 @@ func init() {
             }
           },
           "503": {
-            "description": "Maintanence mode",
+            "description": "Maintenance mode",
             "schema": {
               "$ref": "#/definitions/Error"
             }
@@ -6377,7 +11263,7 @@ func init() {
             }
           },
           "503": {
-            "description": "Maintanence mode",
+            "description": "Maintenance mode",
             "schema": {
               "$ref": "#/definitions/Error"
             }
@@ -6417,7 +11303,7 @@ func init() {
             }
           },
           "503": {
-            "description": "Maintanence mode",
+            "description": "Maintenance mode",
             "schema": {
               "$ref": "#/definitions/Error"
             }
@@ -6481,7 +11367,7 @@ func init() {
             }
           },
           "503": {
-            "description": "Maintanence mode",
+            "description": "Maintenance mode",
             "schema": {
               "$ref": "#/definitions/Error"
             }
@@ -6545,7 +11431,7 @@ func init() {
             }
           },
           "503": {
-            "description": "Maintanence mode",
+            "description": "Maintenance mode",
             "schema": {
               "$ref": "#/definitions/Error"
             }
@@ -6614,7 +11500,7 @@ func init() {
             }
           },
           "503": {
-            "description": "Maintanence mode",
+            "description": "Maintenance mode",
             "schema": {
               "$ref": "#/definitions/Error"
             }
@@ -6678,7 +11564,7 @@ func init() {
             }
           },
           "503": {
-            "description": "Maintanence mode",
+            "description": "Maintenance mode",
             "schema": {
               "$ref": "#/definitions/Error"
             }
@@ -6718,7 +11604,7 @@ func init() {
             }
           },
           "503": {
-            "description": "Maintanence mode",
+            "description": "Maintenance mode",
             "schema": {
               "$ref": "#/definitions/Error"
             }
@@ -6780,7 +11666,7 @@ func init() {
             }
           },
           "503": {
-            "description": "Maintanence mode",
+            "description": "Maintenance mode",
             "schema": {
               "$ref": "#/definitions/Error"
             }
@@ -6844,7 +11730,7 @@ func init() {
             }
           },
           "503": {
-            "description": "Maintanence mode",
+            "description": "Maintenance mode",
             "schema": {
               "$ref": "#/definitions/Error"
             }
@@ -6884,7 +11770,7 @@ func init() {
             }
           },
           "503": {
-            "description": "Maintanence mode",
+            "description": "Maintenance mode",
             "schema": {
               "$ref": "#/definitions/Error"
             }
@@ -6953,7 +11839,7 @@ func init() {
             }
           },
           "503": {
-            "description": "Maintanence mode",
+            "description": "Maintenance mode",
             "schema": {
               "$ref": "#/definitions/Error"
             }
@@ -6999,7 +11885,7 @@ func init() {
             }
           },
           "503": {
-            "description": "Maintanence mode",
+            "description": "Maintenance mode",
             "schema": {
               "$ref": "#/definitions/Error"
             }
@@ -7039,7 +11925,7 @@ func init() {
             }
           },
           "503": {
-            "description": "Maintanence mode",
+            "description": "Maintenance mode",
             "schema": {
               "$ref": "#/definitions/Error"
             }
@@ -7078,7 +11964,7 @@ func init() {
             }
           },
           "503": {
-            "description": "Maintanence mode",
+            "description": "Maintenance mode",
             "schema": {
               "$ref": "#/definitions/Error"
             }
@@ -7129,7 +12015,7 @@ func init() {
             }
           },
           "503": {
-            "description": "Maintanence mode",
+            "description": "Maintenance mode",
             "schema": {
               "$ref": "#/definitions/Error"
             }
@@ -7178,7 +12064,7 @@ func init() {
             }
           },
           "503": {
-            "description": "Maintanence mode",
+            "description": "Maintenance mode",
             "schema": {
               "$ref": "#/definitions/Error"
             }
@@ -7242,7 +12128,7 @@ func init() {
             }
           },
           "503": {
-            "description": "Maintanence mode",
+            "description": "Maintenance mode",
             "schema": {
               "$ref": "#/definitions/Error"
             }
@@ -7282,7 +12168,7 @@ func init() {
             }
           },
           "503": {
-            "description": "Maintanence mode",
+            "description": "Maintenance mode",
             "schema": {
               "$ref": "#/definitions/Error"
             }
@@ -7344,7 +12230,7 @@ func init() {
             }
           },
           "503": {
-            "description": "Maintanence mode",
+            "description": "Maintenance mode",
             "schema": {
               "$ref": "#/definitions/Error"
             }
@@ -7416,7 +12302,7 @@ func init() {
             }
           },
           "503": {
-            "description": "Maintanence mode",
+            "description": "Maintenance mode",
             "schema": {
               "$ref": "#/definitions/Error"
             }
@@ -7481,10 +12367,142 @@ func init() {
             }
           },
           "503": {
-            "description": "Maintanence mode",
+            "description": "Maintenance mode",
             "schema": {
               "$ref": "#/definitions/Error"
             }
+          }
+        }
+      }
+    },
+    "/log-archives": {
+      "get": {
+        "description": "Retrieve a list of all rotated log archive files available for download.",
+        "summary": "List available log archives",
+        "responses": {
+          "200": {
+            "description": "List of log archive files",
+            "schema": {
+              "$ref": "#/definitions/LogArchives"
+            }
+          },
+          "500": {
+            "description": "Internal server error",
+            "schema": {
+              "$ref": "#/definitions/Error"
+            }
+          }
+        }
+      }
+    },
+    "/log-archives/{filename}": {
+      "get": {
+        "description": "Download a log archive file by its name.",
+        "summary": "Download a specific log archive",
+        "parameters": [
+          {
+            "type": "string",
+            "description": "Name of the log archive file to download.",
+            "name": "filename",
+            "in": "path",
+            "required": true
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Log archive file download",
+            "schema": {
+              "type": "file"
+            }
+          },
+          "400": {
+            "description": "Missing or invalid filename",
+            "schema": {
+              "$ref": "#/definitions/Error"
+            }
+          },
+          "404": {
+            "description": "File not found",
+            "schema": {
+              "$ref": "#/definitions/Error"
+            }
+          },
+          "500": {
+            "description": "Internal server error",
+            "schema": {
+              "$ref": "#/definitions/Error"
+            }
+          }
+        }
+      }
+    },
+    "/logs": {
+      "get": {
+        "description": "Fetch the latest logs from the system with optional filtering by number of lines, log level, or keyword.",
+        "summary": "Fetch logs with optional filtering",
+        "parameters": [
+          {
+            "type": "string",
+            "description": "Number of log lines to fetch (default is 100).",
+            "name": "lines",
+            "in": "query"
+          },
+          {
+            "type": "string",
+            "description": "Filter logs by level (e.g., INFO, ERROR, DEBUG).",
+            "name": "level",
+            "in": "query"
+          },
+          {
+            "type": "string",
+            "description": "Filter logs containing a specific keyword or phrase.",
+            "name": "keyword",
+            "in": "query"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Logs fetched successfully",
+            "schema": {
+              "$ref": "#/definitions/Logs"
+            }
+          },
+          "400": {
+            "description": "Invalid query parameters",
+            "schema": {
+              "$ref": "#/definitions/Error"
+            }
+          },
+          "500": {
+            "description": "Internal server error",
+            "schema": {
+              "$ref": "#/definitions/Error"
+            }
+          }
+        }
+      }
+    },
+    "/meta": {
+      "get": {
+        "description": "Returns metadata about required fields for each POST API.",
+        "produces": [
+          "application/json"
+        ],
+        "tags": [
+          "Metadata"
+        ],
+        "summary": "Get metadata for all POST APIs",
+        "operationId": "getMeta",
+        "responses": {
+          "200": {
+            "description": "Successfully retrieved metadata",
+            "schema": {
+              "type": "object",
+              "additionalProperties": true
+            }
+          },
+          "500": {
+            "description": "Internal Server Error"
           }
         }
       }
@@ -7497,6 +12515,458 @@ func init() {
             "description": "Metrics in prometheus text format",
             "schema": {
               "type": "string"
+            }
+          }
+        }
+      }
+    },
+    "/metrics/epdisttraffic": {
+      "get": {
+        "description": "Get metrics related to endpoint distribution traffic per service. The additionalProp is service name.",
+        "summary": "Get endpoint distribution traffic metrics",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "schema": {
+              "$ref": "#/definitions/EpDistTrafficMetrics"
+            }
+          },
+          "500": {
+            "description": "Internal service error",
+            "schema": {
+              "$ref": "#/definitions/Error"
+            }
+          }
+        }
+      }
+    },
+    "/metrics/errorcount": {
+      "get": {
+        "description": "Get metrics related to error counts.",
+        "summary": "Get error count metrics",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "schema": {
+              "$ref": "#/definitions/ErrorCountMetrics"
+            }
+          },
+          "500": {
+            "description": "Internal service error",
+            "schema": {
+              "$ref": "#/definitions/Error"
+            }
+          }
+        }
+      }
+    },
+    "/metrics/flowcount": {
+      "get": {
+        "description": "Get metrics related to flow counts.",
+        "summary": "Get flow count metrics",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "schema": {
+              "$ref": "#/definitions/FlowCountMetrics"
+            }
+          },
+          "500": {
+            "description": "Internal service error",
+            "schema": {
+              "$ref": "#/definitions/Error"
+            }
+          }
+        }
+      }
+    },
+    "/metrics/fwdrops": {
+      "get": {
+        "description": "Get metrics related to firewall drops.",
+        "summary": "Get firewall drops metrics",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "schema": {
+              "$ref": "#/definitions/FwDropsMetrics"
+            }
+          },
+          "500": {
+            "description": "Internal service error",
+            "schema": {
+              "$ref": "#/definitions/Error"
+            }
+          }
+        }
+      }
+    },
+    "/metrics/hostcount": {
+      "get": {
+        "description": "Get metrics related to host counts.",
+        "summary": "Get host count metrics",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "schema": {
+              "$ref": "#/definitions/HostCountMetrics"
+            }
+          },
+          "500": {
+            "description": "Internal service error",
+            "schema": {
+              "$ref": "#/definitions/Error"
+            }
+          }
+        }
+      }
+    },
+    "/metrics/lbprocessedtraffic": {
+      "get": {
+        "description": "Get metrics related to load balancer processed traffic.",
+        "summary": "Get load balancer processed traffic metrics",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "schema": {
+              "$ref": "#/definitions/LbProcessedTrafficMetrics"
+            }
+          },
+          "500": {
+            "description": "Internal service error",
+            "schema": {
+              "$ref": "#/definitions/Error"
+            }
+          }
+        }
+      }
+    },
+    "/metrics/lbrulecount": {
+      "get": {
+        "description": "Get metrics related to load balancer rule counts.",
+        "summary": "Get load balancer rule count metrics",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "schema": {
+              "$ref": "#/definitions/LbRuleCountMetrics"
+            }
+          },
+          "500": {
+            "description": "Internal service error",
+            "schema": {
+              "$ref": "#/definitions/Error"
+            }
+          }
+        }
+      }
+    },
+    "/metrics/newflowcount": {
+      "get": {
+        "description": "Get metrics related to new flow counts.",
+        "summary": "Get new flow count metrics",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "schema": {
+              "$ref": "#/definitions/NewFlowCountMetrics"
+            }
+          },
+          "500": {
+            "description": "Internal service error",
+            "schema": {
+              "$ref": "#/definitions/Error"
+            }
+          }
+        }
+      }
+    },
+    "/metrics/processedtraffic": {
+      "get": {
+        "description": "Get metrics related to processed traffic.",
+        "summary": "Get processed traffic metrics",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "schema": {
+              "$ref": "#/definitions/ProcessedTrafficMetrics"
+            }
+          },
+          "500": {
+            "description": "Internal service error",
+            "schema": {
+              "$ref": "#/definitions/Error"
+            }
+          }
+        }
+      }
+    },
+    "/metrics/reqcountperclient": {
+      "get": {
+        "description": "Get metrics related to request counts per client. The additionalProp is client IP address.",
+        "summary": "Get request count per client metrics",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "schema": {
+              "$ref": "#/definitions/ReqCountPerClientMetrics"
+            }
+          },
+          "500": {
+            "description": "Internal service error",
+            "schema": {
+              "$ref": "#/definitions/Error"
+            }
+          }
+        }
+      }
+    },
+    "/metrics/requestcount": {
+      "get": {
+        "description": "Get metrics related to request counts.",
+        "summary": "Get request count metrics",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "schema": {
+              "$ref": "#/definitions/RequestCountMetrics"
+            }
+          },
+          "500": {
+            "description": "Internal service error",
+            "schema": {
+              "$ref": "#/definitions/Error"
+            }
+          }
+        }
+      }
+    },
+    "/metrics/servicedisttraffic": {
+      "get": {
+        "description": "Get metrics related to service distribution traffic. The additionalProp is service name.",
+        "summary": "Get service distribution traffic metrics",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "schema": {
+              "$ref": "#/definitions/ServiceDistTrafficMetrics"
+            }
+          },
+          "500": {
+            "description": "Internal service error",
+            "schema": {
+              "$ref": "#/definitions/Error"
+            }
+          }
+        }
+      }
+    },
+    "/nodegraph/all": {
+      "get": {
+        "description": "Retrieve a list of all nodes and edges in the current topology.",
+        "summary": "List current topology",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "schema": {
+              "$ref": "#/definitions/NodeGraphShcmea"
+            }
+          },
+          "401": {
+            "description": "Invalid authentication credentials",
+            "schema": {
+              "$ref": "#/definitions/Error"
+            }
+          },
+          "500": {
+            "description": "Internal service error",
+            "schema": {
+              "$ref": "#/definitions/Error"
+            }
+          },
+          "503": {
+            "description": "Maintenance mode",
+            "schema": {
+              "$ref": "#/definitions/Error"
+            }
+          }
+        }
+      }
+    },
+    "/nodegraph/{service}": {
+      "get": {
+        "description": "Retrieve a list of all nodes and edges in the current topology for a specific service.",
+        "summary": "List current topology for a specific service",
+        "parameters": [
+          {
+            "type": "string",
+            "description": "Name of the service to filter the topology by.",
+            "name": "service",
+            "in": "path",
+            "required": true
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "schema": {
+              "$ref": "#/definitions/NodeGraphShcmea"
+            }
+          },
+          "401": {
+            "description": "Invalid authentication credentials",
+            "schema": {
+              "$ref": "#/definitions/Error"
+            }
+          },
+          "500": {
+            "description": "Internal service error",
+            "schema": {
+              "$ref": "#/definitions/Error"
+            }
+          },
+          "503": {
+            "description": "Maintenance mode",
+            "schema": {
+              "$ref": "#/definitions/Error"
+            }
+          }
+        }
+      }
+    },
+    "/oauth/{provider}": {
+      "get": {
+        "security": [],
+        "description": "Initiates the OAuth login flow for the specified provider.",
+        "tags": [
+          "auth"
+        ],
+        "summary": "OAuth login",
+        "parameters": [
+          {
+            "type": "string",
+            "description": "OAuth provider",
+            "name": "provider",
+            "in": "path",
+            "required": true
+          }
+        ],
+        "responses": {
+          "302": {
+            "description": "Found",
+            "schema": {
+              "$ref": "#/definitions/OauthMessageResponse"
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "schema": {
+              "$ref": "#/definitions/OauthErrorResponse"
+            }
+          }
+        }
+      }
+    },
+    "/oauth/{provider}/callback": {
+      "get": {
+        "security": [],
+        "description": "Handles the OAuth callback flow for the specified provider.",
+        "tags": [
+          "auth"
+        ],
+        "summary": "OAuth callback",
+        "parameters": [
+          {
+            "type": "string",
+            "description": "OAuth provider",
+            "name": "provider",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "string",
+            "description": "OAuth code",
+            "name": "code",
+            "in": "query",
+            "required": true
+          },
+          {
+            "type": "string",
+            "description": "OAuth state",
+            "name": "state",
+            "in": "query",
+            "required": true
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "schema": {
+              "$ref": "#/definitions/OauthLoginResponse"
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "schema": {
+              "$ref": "#/definitions/OauthErrorResponse"
+            }
+          },
+          "500": {
+            "description": "Internal Server Error",
+            "schema": {
+              "$ref": "#/definitions/OauthErrorResponse"
+            }
+          }
+        }
+      }
+    },
+    "/oauth/{provider}/token": {
+      "get": {
+        "security": [],
+        "description": "Handles the OAuth token refresh workflow for the specified provider.",
+        "tags": [
+          "auth"
+        ],
+        "summary": "OAuth callback",
+        "parameters": [
+          {
+            "type": "string",
+            "description": "OAuth provider",
+            "name": "provider",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "string",
+            "description": "OAuth access token",
+            "name": "token",
+            "in": "query",
+            "required": true
+          },
+          {
+            "type": "string",
+            "description": "OAuth refresh token",
+            "name": "refreshtoken",
+            "in": "query",
+            "required": true
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "schema": {
+              "$ref": "#/definitions/OauthTokenResponse"
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "schema": {
+              "$ref": "#/definitions/OauthErrorResponse"
+            }
+          },
+          "500": {
+            "description": "Internal Server Error",
+            "schema": {
+              "$ref": "#/definitions/OauthErrorResponse"
             }
           }
         }
@@ -7526,7 +12996,7 @@ func init() {
             }
           },
           "503": {
-            "description": "Maintanence mode",
+            "description": "Maintenance mode",
             "schema": {
               "$ref": "#/definitions/Error"
             }
@@ -7566,7 +13036,7 @@ func init() {
             }
           },
           "503": {
-            "description": "Maintanence mode",
+            "description": "Maintenance mode",
             "schema": {
               "$ref": "#/definitions/Error"
             }
@@ -7606,7 +13076,40 @@ func init() {
             }
           },
           "503": {
-            "description": "Maintanence mode",
+            "description": "Maintenance mode",
+            "schema": {
+              "$ref": "#/definitions/Error"
+            }
+          }
+        }
+      }
+    },
+    "/version": {
+      "get": {
+        "security": [],
+        "description": "Get version information",
+        "summary": "Get version information in the device",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "schema": {
+              "$ref": "#/definitions/VersionGetEntry"
+            }
+          },
+          "401": {
+            "description": "Invalid authentication credentials",
+            "schema": {
+              "$ref": "#/definitions/Error"
+            }
+          },
+          "500": {
+            "description": "Internal service error",
+            "schema": {
+              "$ref": "#/definitions/Error"
+            }
+          },
+          "503": {
+            "description": "Maintenance mode",
             "schema": {
               "$ref": "#/definitions/Error"
             }
@@ -7616,8 +13119,46 @@ func init() {
     }
   },
   "definitions": {
+    "BGPApplyPolicyToNeighborMod": {
+      "type": "object",
+      "required": [
+        "ipAddress",
+        "policyType",
+        "routeAction"
+      ],
+      "properties": {
+        "ipAddress": {
+          "description": "BGP Neighbor IP address",
+          "type": "string"
+        },
+        "policies": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "policyType": {
+          "type": "string",
+          "enum": [
+            "import",
+            "export"
+          ]
+        },
+        "routeAction": {
+          "type": "string",
+          "enum": [
+            "accept",
+            "reject"
+          ]
+        }
+      }
+    },
     "BGPGlobalConfig": {
       "type": "object",
+      "required": [
+        "routerId",
+        "localAs"
+      ],
       "properties": {
         "SetNextHopSelf": {
           "description": "Adds policy to set next hop as self, if enabled",
@@ -7639,6 +13180,10 @@ func init() {
     },
     "BGPNeigh": {
       "type": "object",
+      "required": [
+        "ipAddress",
+        "remoteAs"
+      ],
       "properties": {
         "ipAddress": {
           "description": "BGP Neighbor IP address",
@@ -7655,6 +13200,809 @@ func init() {
         "setMultiHop": {
           "description": "Enable multi-hop peering (if needed)",
           "type": "boolean"
+        }
+      }
+    },
+    "BGPNeighGetEntry": {
+      "type": "object",
+      "properties": {
+        "ipAddress": {
+          "description": "BGP Neighbor IP address",
+          "type": "string"
+        },
+        "remoteAs": {
+          "description": "Remote AS number",
+          "type": "integer"
+        },
+        "state": {
+          "description": "Current state",
+          "type": "string"
+        },
+        "updowntime": {
+          "description": "Current uptime",
+          "type": "string"
+        }
+      }
+    },
+    "BGPPolicyDefinedSetGetEntry": {
+      "type": "object",
+      "required": [
+        "name"
+      ],
+      "properties": {
+        "list": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "name": {
+          "description": "BGP Defined set Entries",
+          "type": "string"
+        },
+        "prefixList": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/BGPPolicyPrefix"
+          }
+        }
+      }
+    },
+    "BGPPolicyDefinedSetsMod": {
+      "type": "object",
+      "required": [
+        "name"
+      ],
+      "properties": {
+        "List": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "name": {
+          "description": "BGP Neighbor IP address",
+          "type": "string"
+        },
+        "prefixList": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/BGPPolicyPrefix"
+          }
+        }
+      }
+    },
+    "BGPPolicyDefinitionsMod": {
+      "type": "object",
+      "properties": {
+        "name": {
+          "description": "BGP Neighbor IP address",
+          "type": "string"
+        },
+        "statements": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/BGPPolicyDefinitionsStatement"
+          }
+        }
+      }
+    },
+    "BGPPolicyDefinitionsStatement": {
+      "type": "object",
+      "properties": {
+        "actions": {
+          "type": "object",
+          "properties": {
+            "bgpActions": {
+              "type": "object",
+              "properties": {
+                "setAsPathPrepend": {
+                  "type": "object",
+                  "properties": {
+                    "as": {
+                      "type": "string"
+                    },
+                    "repeatN": {
+                      "type": "integer"
+                    }
+                  }
+                },
+                "setCommunity": {
+                  "type": "object",
+                  "properties": {
+                    "options": {
+                      "type": "string"
+                    },
+                    "setCommunityMethod": {
+                      "type": "array",
+                      "items": {
+                        "type": "string"
+                      }
+                    }
+                  }
+                },
+                "setExtCommunity": {
+                  "type": "object",
+                  "properties": {
+                    "options": {
+                      "type": "string"
+                    },
+                    "setCommunityMethod": {
+                      "type": "array",
+                      "items": {
+                        "type": "string"
+                      }
+                    }
+                  }
+                },
+                "setLargeCommunity": {
+                  "type": "object",
+                  "properties": {
+                    "options": {
+                      "type": "string"
+                    },
+                    "setCommunityMethod": {
+                      "type": "array",
+                      "items": {
+                        "type": "string"
+                      }
+                    }
+                  }
+                },
+                "setLocalPerf": {
+                  "type": "integer"
+                },
+                "setMed": {
+                  "type": "string"
+                },
+                "setNextHop": {
+                  "type": "string"
+                }
+              }
+            },
+            "routeDisposition": {
+              "type": "string"
+            }
+          }
+        },
+        "conditions": {
+          "type": "object",
+          "properties": {
+            "bgpConditions": {
+              "type": "object",
+              "properties": {
+                "afiSafiIn": {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  }
+                },
+                "asPathLength": {
+                  "type": "object",
+                  "properties": {
+                    "operator": {
+                      "type": "string"
+                    },
+                    "value": {
+                      "type": "integer"
+                    }
+                  }
+                },
+                "matchAsPathSet": {
+                  "type": "object",
+                  "properties": {
+                    "asPathSet": {
+                      "type": "string"
+                    },
+                    "matchSetOptions": {
+                      "type": "string"
+                    }
+                  }
+                },
+                "matchCommunitySet": {
+                  "type": "object",
+                  "properties": {
+                    "communitySet": {
+                      "type": "string"
+                    },
+                    "matchSetOptions": {
+                      "type": "string"
+                    }
+                  }
+                },
+                "matchExtCommunitySet": {
+                  "type": "object",
+                  "properties": {
+                    "communitySet": {
+                      "type": "string"
+                    },
+                    "matchSetOptions": {
+                      "type": "string"
+                    }
+                  }
+                },
+                "matchLargeCommunitySet": {
+                  "type": "object",
+                  "properties": {
+                    "communitySet": {
+                      "type": "string"
+                    },
+                    "matchSetOptions": {
+                      "type": "string"
+                    }
+                  }
+                },
+                "nextHopInList": {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  }
+                },
+                "routeType": {
+                  "type": "string"
+                },
+                "rpki": {
+                  "type": "string"
+                }
+              }
+            },
+            "matchNeighborSet": {
+              "type": "object",
+              "properties": {
+                "matchSetOption": {
+                  "type": "string"
+                },
+                "neighborSet": {
+                  "type": "string"
+                }
+              }
+            },
+            "matchPrefixSet": {
+              "type": "object",
+              "properties": {
+                "matchSetOption": {
+                  "type": "string"
+                },
+                "prefixSet": {
+                  "type": "string"
+                }
+              }
+            }
+          }
+        },
+        "name": {
+          "type": "string"
+        }
+      }
+    },
+    "BGPPolicyDefinitionsStatementActions": {
+      "type": "object",
+      "properties": {
+        "bgpActions": {
+          "type": "object",
+          "properties": {
+            "setAsPathPrepend": {
+              "type": "object",
+              "properties": {
+                "as": {
+                  "type": "string"
+                },
+                "repeatN": {
+                  "type": "integer"
+                }
+              }
+            },
+            "setCommunity": {
+              "type": "object",
+              "properties": {
+                "options": {
+                  "type": "string"
+                },
+                "setCommunityMethod": {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  }
+                }
+              }
+            },
+            "setExtCommunity": {
+              "type": "object",
+              "properties": {
+                "options": {
+                  "type": "string"
+                },
+                "setCommunityMethod": {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  }
+                }
+              }
+            },
+            "setLargeCommunity": {
+              "type": "object",
+              "properties": {
+                "options": {
+                  "type": "string"
+                },
+                "setCommunityMethod": {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  }
+                }
+              }
+            },
+            "setLocalPerf": {
+              "type": "integer"
+            },
+            "setMed": {
+              "type": "string"
+            },
+            "setNextHop": {
+              "type": "string"
+            }
+          }
+        },
+        "routeDisposition": {
+          "type": "string"
+        }
+      }
+    },
+    "BGPPolicyDefinitionsStatementActionsBgpActions": {
+      "type": "object",
+      "properties": {
+        "setAsPathPrepend": {
+          "type": "object",
+          "properties": {
+            "as": {
+              "type": "string"
+            },
+            "repeatN": {
+              "type": "integer"
+            }
+          }
+        },
+        "setCommunity": {
+          "type": "object",
+          "properties": {
+            "options": {
+              "type": "string"
+            },
+            "setCommunityMethod": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            }
+          }
+        },
+        "setExtCommunity": {
+          "type": "object",
+          "properties": {
+            "options": {
+              "type": "string"
+            },
+            "setCommunityMethod": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            }
+          }
+        },
+        "setLargeCommunity": {
+          "type": "object",
+          "properties": {
+            "options": {
+              "type": "string"
+            },
+            "setCommunityMethod": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            }
+          }
+        },
+        "setLocalPerf": {
+          "type": "integer"
+        },
+        "setMed": {
+          "type": "string"
+        },
+        "setNextHop": {
+          "type": "string"
+        }
+      }
+    },
+    "BGPPolicyDefinitionsStatementActionsBgpActionsSetAsPathPrepend": {
+      "type": "object",
+      "properties": {
+        "as": {
+          "type": "string"
+        },
+        "repeatN": {
+          "type": "integer"
+        }
+      }
+    },
+    "BGPPolicyDefinitionsStatementActionsBgpActionsSetCommunity": {
+      "type": "object",
+      "properties": {
+        "options": {
+          "type": "string"
+        },
+        "setCommunityMethod": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "BGPPolicyDefinitionsStatementActionsBgpActionsSetExtCommunity": {
+      "type": "object",
+      "properties": {
+        "options": {
+          "type": "string"
+        },
+        "setCommunityMethod": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "BGPPolicyDefinitionsStatementActionsBgpActionsSetLargeCommunity": {
+      "type": "object",
+      "properties": {
+        "options": {
+          "type": "string"
+        },
+        "setCommunityMethod": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "BGPPolicyDefinitionsStatementConditions": {
+      "type": "object",
+      "properties": {
+        "bgpConditions": {
+          "type": "object",
+          "properties": {
+            "afiSafiIn": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            },
+            "asPathLength": {
+              "type": "object",
+              "properties": {
+                "operator": {
+                  "type": "string"
+                },
+                "value": {
+                  "type": "integer"
+                }
+              }
+            },
+            "matchAsPathSet": {
+              "type": "object",
+              "properties": {
+                "asPathSet": {
+                  "type": "string"
+                },
+                "matchSetOptions": {
+                  "type": "string"
+                }
+              }
+            },
+            "matchCommunitySet": {
+              "type": "object",
+              "properties": {
+                "communitySet": {
+                  "type": "string"
+                },
+                "matchSetOptions": {
+                  "type": "string"
+                }
+              }
+            },
+            "matchExtCommunitySet": {
+              "type": "object",
+              "properties": {
+                "communitySet": {
+                  "type": "string"
+                },
+                "matchSetOptions": {
+                  "type": "string"
+                }
+              }
+            },
+            "matchLargeCommunitySet": {
+              "type": "object",
+              "properties": {
+                "communitySet": {
+                  "type": "string"
+                },
+                "matchSetOptions": {
+                  "type": "string"
+                }
+              }
+            },
+            "nextHopInList": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            },
+            "routeType": {
+              "type": "string"
+            },
+            "rpki": {
+              "type": "string"
+            }
+          }
+        },
+        "matchNeighborSet": {
+          "type": "object",
+          "properties": {
+            "matchSetOption": {
+              "type": "string"
+            },
+            "neighborSet": {
+              "type": "string"
+            }
+          }
+        },
+        "matchPrefixSet": {
+          "type": "object",
+          "properties": {
+            "matchSetOption": {
+              "type": "string"
+            },
+            "prefixSet": {
+              "type": "string"
+            }
+          }
+        }
+      }
+    },
+    "BGPPolicyDefinitionsStatementConditionsBgpConditions": {
+      "type": "object",
+      "properties": {
+        "afiSafiIn": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "asPathLength": {
+          "type": "object",
+          "properties": {
+            "operator": {
+              "type": "string"
+            },
+            "value": {
+              "type": "integer"
+            }
+          }
+        },
+        "matchAsPathSet": {
+          "type": "object",
+          "properties": {
+            "asPathSet": {
+              "type": "string"
+            },
+            "matchSetOptions": {
+              "type": "string"
+            }
+          }
+        },
+        "matchCommunitySet": {
+          "type": "object",
+          "properties": {
+            "communitySet": {
+              "type": "string"
+            },
+            "matchSetOptions": {
+              "type": "string"
+            }
+          }
+        },
+        "matchExtCommunitySet": {
+          "type": "object",
+          "properties": {
+            "communitySet": {
+              "type": "string"
+            },
+            "matchSetOptions": {
+              "type": "string"
+            }
+          }
+        },
+        "matchLargeCommunitySet": {
+          "type": "object",
+          "properties": {
+            "communitySet": {
+              "type": "string"
+            },
+            "matchSetOptions": {
+              "type": "string"
+            }
+          }
+        },
+        "nextHopInList": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "routeType": {
+          "type": "string"
+        },
+        "rpki": {
+          "type": "string"
+        }
+      }
+    },
+    "BGPPolicyDefinitionsStatementConditionsBgpConditionsAsPathLength": {
+      "type": "object",
+      "properties": {
+        "operator": {
+          "type": "string"
+        },
+        "value": {
+          "type": "integer"
+        }
+      }
+    },
+    "BGPPolicyDefinitionsStatementConditionsBgpConditionsMatchAsPathSet": {
+      "type": "object",
+      "properties": {
+        "asPathSet": {
+          "type": "string"
+        },
+        "matchSetOptions": {
+          "type": "string"
+        }
+      }
+    },
+    "BGPPolicyDefinitionsStatementConditionsBgpConditionsMatchCommunitySet": {
+      "type": "object",
+      "properties": {
+        "communitySet": {
+          "type": "string"
+        },
+        "matchSetOptions": {
+          "type": "string"
+        }
+      }
+    },
+    "BGPPolicyDefinitionsStatementConditionsBgpConditionsMatchExtCommunitySet": {
+      "type": "object",
+      "properties": {
+        "communitySet": {
+          "type": "string"
+        },
+        "matchSetOptions": {
+          "type": "string"
+        }
+      }
+    },
+    "BGPPolicyDefinitionsStatementConditionsBgpConditionsMatchLargeCommunitySet": {
+      "type": "object",
+      "properties": {
+        "communitySet": {
+          "type": "string"
+        },
+        "matchSetOptions": {
+          "type": "string"
+        }
+      }
+    },
+    "BGPPolicyDefinitionsStatementConditionsMatchNeighborSet": {
+      "type": "object",
+      "properties": {
+        "matchSetOption": {
+          "type": "string"
+        },
+        "neighborSet": {
+          "type": "string"
+        }
+      }
+    },
+    "BGPPolicyDefinitionsStatementConditionsMatchPrefixSet": {
+      "type": "object",
+      "properties": {
+        "matchSetOption": {
+          "type": "string"
+        },
+        "prefixSet": {
+          "type": "string"
+        }
+      }
+    },
+    "BGPPolicyPrefix": {
+      "type": "object",
+      "properties": {
+        "ipPrefix": {
+          "description": "BGP Neighbor IP address",
+          "type": "string"
+        },
+        "masklengthRange": {
+          "description": "Remote AS number",
+          "type": "string"
+        }
+      }
+    },
+    "BfdEntry": {
+      "type": "object",
+      "properties": {
+        "instance": {
+          "description": "Instance name running BFD session",
+          "type": "string"
+        },
+        "interval": {
+          "description": "Tx interval between BFD packets(in microseconds)",
+          "type": "integer",
+          "format": "uint64"
+        },
+        "remoteIp": {
+          "description": "Remote IP",
+          "type": "string"
+        },
+        "retryCount": {
+          "description": "Retry Count to detect failure",
+          "type": "integer",
+          "format": "uint8"
+        },
+        "sourceIp": {
+          "description": "Remote IP",
+          "type": "string"
+        }
+      }
+    },
+    "BfdGetEntry": {
+      "type": "object",
+      "properties": {
+        "instance": {
+          "description": "Instance name",
+          "type": "string"
+        },
+        "interval": {
+          "description": "Tx interval between BFD packets(in microseconds)",
+          "type": "integer",
+          "format": "uint64"
+        },
+        "port": {
+          "description": "port number to be used for BFD session",
+          "type": "integer",
+          "format": "uint16"
+        },
+        "remoteIp": {
+          "description": "Remote IP",
+          "type": "string"
+        },
+        "retryCount": {
+          "description": "Retry Count to detect failure",
+          "type": "integer",
+          "format": "uint8"
+        },
+        "sourceIP": {
+          "description": "Source IP to be used for BFD session",
+          "type": "string"
+        },
+        "state": {
+          "description": "Current state for BFD session",
+          "type": "string"
         }
       }
     },
@@ -7722,6 +14070,10 @@ func init() {
           "description": "port number for the access",
           "type": "integer"
         },
+        "ident": {
+          "description": "value for Conntrack ident",
+          "type": "string"
+        },
         "packets": {
           "description": "Packet counts of the conntrack",
           "type": "integer"
@@ -7777,8 +14129,37 @@ func init() {
         }
       }
     },
+    "Edge": {
+      "type": "object",
+      "properties": {
+        "color": {
+          "type": "string"
+        },
+        "id": {
+          "type": "string"
+        },
+        "mainstat": {
+          "type": "number"
+        },
+        "secondarystat": {
+          "type": "number"
+        },
+        "source": {
+          "type": "string"
+        },
+        "target": {
+          "type": "string"
+        },
+        "thickness": {
+          "type": "integer"
+        }
+      }
+    },
     "EndPoint": {
       "type": "object",
+      "required": [
+        "hostName"
+      ],
       "properties": {
         "hostName": {
           "description": "Host name in CIDR",
@@ -7867,6 +14248,50 @@ func init() {
         }
       }
     },
+    "EndPointHostState": {
+      "type": "object",
+      "properties": {
+        "epPort": {
+          "description": "The end-point port (0 if not applicable)",
+          "type": "integer"
+        },
+        "epProto": {
+          "description": "The end-point prototype (tcp,udp,sctp,icmp,http(s), empty if not applicable)",
+          "type": "string"
+        },
+        "hostName": {
+          "description": "Host name in CIDR",
+          "type": "string"
+        },
+        "state": {
+          "description": "Host state string (\"green\", \"yellow\", \"red\" )",
+          "type": "string"
+        }
+      }
+    },
+    "EpDistTrafficMetrics": {
+      "type": "object",
+      "additionalProperties": {
+        "type": "array",
+        "items": {
+          "$ref": "#/definitions/EpDistTrafficMetricsItems0"
+        }
+      }
+    },
+    "EpDistTrafficMetricsItems0": {
+      "type": "object",
+      "properties": {
+        "dip": {
+          "type": "string"
+        },
+        "ratio": {
+          "type": "number"
+        },
+        "value": {
+          "type": "number"
+        }
+      }
+    },
     "Error": {
       "type": "object",
       "properties": {
@@ -7892,8 +14317,45 @@ func init() {
         }
       }
     },
+    "ErrorCountMetrics": {
+      "type": "object",
+      "properties": {
+        "total_errors": {
+          "type": "number"
+        },
+        "total_errors_per_service": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/ErrorCountMetricsTotalErrorsPerServiceItems0"
+          }
+        }
+      }
+    },
+    "ErrorCountMetricsTotalErrorsPerServiceItems0": {
+      "type": "object",
+      "properties": {
+        "name": {
+          "type": "string"
+        },
+        "value": {
+          "type": "number"
+        }
+      }
+    },
+    "ErrorResponse": {
+      "type": "object",
+      "properties": {
+        "message": {
+          "type": "string"
+        }
+      }
+    },
     "FDBEntry": {
       "type": "object",
+      "required": [
+        "dev",
+        "macAddress"
+      ],
       "properties": {
         "dev": {
           "description": "Name of the interface device to which you want to modify FDB",
@@ -7940,6 +14402,10 @@ func init() {
     },
     "FirewallEntry": {
       "type": "object",
+      "required": [
+        "ruleArguments",
+        "opts"
+      ],
       "properties": {
         "opts": {
           "$ref": "#/definitions/FirewallOptionEntry"
@@ -7956,6 +14422,14 @@ func init() {
           "description": "Allow any matching rule",
           "type": "boolean"
         },
+        "counter": {
+          "description": "traffic counters",
+          "type": "string"
+        },
+        "doSnat": {
+          "description": "Do SNAT on matching rule",
+          "type": "boolean"
+        },
         "drop": {
           "description": "Drop any matching rule",
           "type": "boolean"
@@ -7963,6 +14437,10 @@ func init() {
         "fwMark": {
           "description": "Set a fwmark for any matching rule",
           "type": "integer"
+        },
+        "onDefault": {
+          "description": "Trigger only on default cases",
+          "type": "boolean"
         },
         "record": {
           "description": "Record or dump for matching rule",
@@ -7975,6 +14453,14 @@ func init() {
         "redirectPortName": {
           "description": "Redirect any matching rule",
           "type": "string"
+        },
+        "toIP": {
+          "description": "Modify to given IP in CIDR notation",
+          "type": "string"
+        },
+        "toPort": {
+          "description": "Modify to given Port (Zero if port is not to be modified)",
+          "type": "integer"
         },
         "trap": {
           "description": "Trap anything matching rule",
@@ -8023,8 +14509,76 @@ func init() {
         }
       }
     },
+    "FlowCountMetrics": {
+      "type": "object",
+      "properties": {
+        "active_conntrack_count": {
+          "type": "number"
+        },
+        "active_flow_count_sctp": {
+          "type": "number"
+        },
+        "active_flow_count_tcp": {
+          "type": "number"
+        },
+        "active_flow_count_udp": {
+          "type": "number"
+        },
+        "inactive_flow_count": {
+          "type": "number"
+        }
+      }
+    },
+    "FwDropsMetrics": {
+      "type": "object",
+      "properties": {
+        "total_fw_drops": {
+          "type": "number"
+        },
+        "total_fw_drops_per_rule": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/FwDropsMetricsTotalFwDropsPerRuleItems0"
+          }
+        }
+      }
+    },
+    "FwDropsMetricsTotalFwDropsPerRuleItems0": {
+      "type": "object",
+      "properties": {
+        "fw_rule": {
+          "type": "string"
+        },
+        "value": {
+          "type": "number"
+        }
+      }
+    },
+    "HealthCheckResponse": {
+      "type": "object",
+      "properties": {
+        "status": {
+          "type": "string"
+        }
+      }
+    },
+    "HostCountMetrics": {
+      "type": "object",
+      "properties": {
+        "healthy_host_count": {
+          "type": "number"
+        },
+        "unhealthy_host_count": {
+          "type": "number"
+        }
+      }
+    },
     "IPv4AddressEntry": {
       "type": "object",
+      "required": [
+        "dev",
+        "ipAddress"
+      ],
       "properties": {
         "dev": {
           "description": "Name of the interface device to which you want to modify the IP address",
@@ -8058,9 +14612,156 @@ func init() {
         }
       }
     },
-    "LoadbalanceEntry": {
+    "K8sConntrackEntry": {
       "type": "object",
       "properties": {
+        "bytes": {
+          "description": "Packet bytes of the conntrack",
+          "type": "integer"
+        },
+        "conntrackAct": {
+          "description": "value for Conntrack Act",
+          "type": "string"
+        },
+        "conntrackState": {
+          "description": "value for Conntrack state",
+          "type": "string"
+        },
+        "destinationIP": {
+          "description": "IP address for externel access",
+          "type": "string"
+        },
+        "destinationNamespace": {
+          "description": "Namespace of the destination",
+          "type": "string"
+        },
+        "destinationNode": {
+          "description": "Node of the destination",
+          "type": "string"
+        },
+        "destinationPod": {
+          "description": "Pod name of the destination",
+          "type": "string"
+        },
+        "destinationPort": {
+          "description": "port number for the access",
+          "type": "integer"
+        },
+        "ident": {
+          "description": "value for Conntrack ident",
+          "type": "string"
+        },
+        "k8sservName": {
+          "description": "K8s service name",
+          "type": "string"
+        },
+        "packets": {
+          "description": "Packet counts of the conntrack",
+          "type": "integer"
+        },
+        "protocol": {
+          "description": "value for access protocol",
+          "type": "string"
+        },
+        "servName": {
+          "description": "Connection's Service Name",
+          "type": "string"
+        },
+        "sourceIP": {
+          "description": "IP address for externel access",
+          "type": "string"
+        },
+        "sourceNamespace": {
+          "description": "Namespace of the source",
+          "type": "string"
+        },
+        "sourceNode": {
+          "description": "Node of the source",
+          "type": "string"
+        },
+        "sourcePod": {
+          "description": "Pod name of the soruce",
+          "type": "string"
+        },
+        "sourcePort": {
+          "description": "port number for the access",
+          "type": "integer"
+        }
+      }
+    },
+    "LbProcessedTrafficMetrics": {
+      "type": "object",
+      "properties": {
+        "lb_rule_interaction_bytes": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/LbProcessedTrafficMetricsLbRuleInteractionBytesItems0"
+          }
+        },
+        "lb_rule_interaction_packets": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/LbProcessedTrafficMetricsLbRuleInteractionPacketsItems0"
+          }
+        }
+      }
+    },
+    "LbProcessedTrafficMetricsLbRuleInteractionBytesItems0": {
+      "type": "object",
+      "properties": {
+        "dip": {
+          "type": "string"
+        },
+        "service": {
+          "type": "string"
+        },
+        "sip": {
+          "type": "string"
+        },
+        "value": {
+          "type": "number"
+        }
+      }
+    },
+    "LbProcessedTrafficMetricsLbRuleInteractionPacketsItems0": {
+      "type": "object",
+      "properties": {
+        "dip": {
+          "type": "string"
+        },
+        "service": {
+          "type": "string"
+        },
+        "sip": {
+          "type": "string"
+        },
+        "value": {
+          "type": "number"
+        }
+      }
+    },
+    "LbRuleCountMetrics": {
+      "type": "object",
+      "properties": {
+        "lb_rule_count": {
+          "type": "number"
+        }
+      }
+    },
+    "LoadbalanceEntry": {
+      "type": "object",
+      "required": [
+        "serviceArguments",
+        "endpoints"
+      ],
+      "properties": {
+        "allowedSources": {
+          "description": "values of allowed source IP",
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/LoadbalanceEntryAllowedSourcesItems0"
+          }
+        },
         "endpoints": {
           "description": "values of End point servers",
           "type": "array",
@@ -8077,6 +14778,10 @@ func init() {
         },
         "serviceArguments": {
           "type": "object",
+          "required": [
+            "externalIP",
+            "port"
+          ],
           "properties": {
             "bgp": {
               "description": "value for BGP enable or not",
@@ -8085,10 +14790,18 @@ func init() {
             "block": {
               "description": "block-number if any of this LB entry",
               "type": "integer",
-              "format": "uint16"
+              "format": "uint32"
+            },
+            "egress": {
+              "description": "flag to indicate an egress rule",
+              "type": "boolean"
             },
             "externalIP": {
-              "description": "IP address for externel access",
+              "description": "IP address for external access",
+              "type": "string"
+            },
+            "host": {
+              "description": "Ingress specific host URL path",
               "type": "string"
             },
             "inactiveTimeOut": {
@@ -8101,9 +14814,17 @@ func init() {
               "type": "boolean"
             },
             "mode": {
-              "description": "value for NAT mode (0-DNAT, 1-oneArm, 2-fullNAT)",
+              "description": "value for NAT mode (0-DNAT,1-onearm, 2-fullnat, 3-dsr, 4-fullproxy, 5-hostonearm, 0-default)",
               "type": "integer",
-              "format": "int32"
+              "format": "int32",
+              "enum": [
+                0,
+                1,
+                2,
+                3,
+                4,
+                5
+              ]
             },
             "monitor": {
               "description": "value for monitoring enabled or not",
@@ -8113,9 +14834,37 @@ func init() {
               "description": "service name",
               "type": "string"
             },
+            "oper": {
+              "description": "end-point specific op (0-create, 1-attachEP, 2-detachEP)",
+              "type": "integer",
+              "format": "int32",
+              "enum": [
+                0,
+                1,
+                2
+              ]
+            },
             "port": {
-              "description": "port number for the access",
+              "description": "(Min) port number for the access",
               "type": "integer"
+            },
+            "portMax": {
+              "description": "Max port number(range) for the access",
+              "type": "integer"
+            },
+            "privateIP": {
+              "description": "private IP (NAT'd) address for external access",
+              "type": "string"
+            },
+            "probeRetries": {
+              "description": "value for probe retries",
+              "type": "integer",
+              "format": "int32"
+            },
+            "probeTimeout": {
+              "description": "value for probe timer (in seconds)",
+              "type": "integer",
+              "format": "uint32"
             },
             "probeport": {
               "description": "probe port if probetype is tcp/udp/sctp",
@@ -8138,15 +14887,55 @@ func init() {
               "description": "value for access protocol",
               "type": "string"
             },
+            "proxyprotocolv2": {
+              "description": "flag to enable proxy protocol v2",
+              "type": "boolean"
+            },
+            "security": {
+              "description": "value for Security mode (0-Plain, 1-https, 1-tls, 2-e2ehttps, 0-default)",
+              "type": "integer",
+              "format": "int32",
+              "enum": [
+                0,
+                1,
+                2
+              ]
+            },
             "sel": {
-              "description": "value for load balance algorithim",
-              "type": "integer"
+              "description": "value for load balance algorithim(0-rr, 1-hash, 2-priority, 3-persist, 4-lc, 5-n2, 6-n3, 0-default)",
+              "type": "integer",
+              "enum": [
+                0,
+                1,
+                2,
+                3,
+                4,
+                5,
+                6
+              ]
+            },
+            "snat": {
+              "description": "snat rule",
+              "type": "boolean"
             }
           }
         }
       }
     },
+    "LoadbalanceEntryAllowedSourcesItems0": {
+      "properties": {
+        "prefix": {
+          "description": "IP address for allowed source access",
+          "type": "string"
+        }
+      }
+    },
     "LoadbalanceEntryEndpointsItems0": {
+      "required": [
+        "endpointIP",
+        "weight",
+        "targetPort"
+      ],
       "properties": {
         "counter": {
           "description": "traffic counters of the endpoint",
@@ -8180,6 +14969,10 @@ func init() {
     },
     "LoadbalanceEntryServiceArguments": {
       "type": "object",
+      "required": [
+        "externalIP",
+        "port"
+      ],
       "properties": {
         "bgp": {
           "description": "value for BGP enable or not",
@@ -8188,10 +14981,18 @@ func init() {
         "block": {
           "description": "block-number if any of this LB entry",
           "type": "integer",
-          "format": "uint16"
+          "format": "uint32"
+        },
+        "egress": {
+          "description": "flag to indicate an egress rule",
+          "type": "boolean"
         },
         "externalIP": {
-          "description": "IP address for externel access",
+          "description": "IP address for external access",
+          "type": "string"
+        },
+        "host": {
+          "description": "Ingress specific host URL path",
           "type": "string"
         },
         "inactiveTimeOut": {
@@ -8204,9 +15005,17 @@ func init() {
           "type": "boolean"
         },
         "mode": {
-          "description": "value for NAT mode (0-DNAT, 1-oneArm, 2-fullNAT)",
+          "description": "value for NAT mode (0-DNAT,1-onearm, 2-fullnat, 3-dsr, 4-fullproxy, 5-hostonearm, 0-default)",
           "type": "integer",
-          "format": "int32"
+          "format": "int32",
+          "enum": [
+            0,
+            1,
+            2,
+            3,
+            4,
+            5
+          ]
         },
         "monitor": {
           "description": "value for monitoring enabled or not",
@@ -8216,9 +15025,37 @@ func init() {
           "description": "service name",
           "type": "string"
         },
+        "oper": {
+          "description": "end-point specific op (0-create, 1-attachEP, 2-detachEP)",
+          "type": "integer",
+          "format": "int32",
+          "enum": [
+            0,
+            1,
+            2
+          ]
+        },
         "port": {
-          "description": "port number for the access",
+          "description": "(Min) port number for the access",
           "type": "integer"
+        },
+        "portMax": {
+          "description": "Max port number(range) for the access",
+          "type": "integer"
+        },
+        "privateIP": {
+          "description": "private IP (NAT'd) address for external access",
+          "type": "string"
+        },
+        "probeRetries": {
+          "description": "value for probe retries",
+          "type": "integer",
+          "format": "int32"
+        },
+        "probeTimeout": {
+          "description": "value for probe timer (in seconds)",
+          "type": "integer",
+          "format": "uint32"
         },
         "probeport": {
           "description": "probe port if probetype is tcp/udp/sctp",
@@ -8241,14 +15078,115 @@ func init() {
           "description": "value for access protocol",
           "type": "string"
         },
+        "proxyprotocolv2": {
+          "description": "flag to enable proxy protocol v2",
+          "type": "boolean"
+        },
+        "security": {
+          "description": "value for Security mode (0-Plain, 1-https, 1-tls, 2-e2ehttps, 0-default)",
+          "type": "integer",
+          "format": "int32",
+          "enum": [
+            0,
+            1,
+            2
+          ]
+        },
         "sel": {
-          "description": "value for load balance algorithim",
-          "type": "integer"
+          "description": "value for load balance algorithim(0-rr, 1-hash, 2-priority, 3-persist, 4-lc, 5-n2, 6-n3, 0-default)",
+          "type": "integer",
+          "enum": [
+            0,
+            1,
+            2,
+            3,
+            4,
+            5,
+            6
+          ]
+        },
+        "snat": {
+          "description": "snat rule",
+          "type": "boolean"
+        }
+      }
+    },
+    "LogArchives": {
+      "type": "object",
+      "properties": {
+        "archives": {
+          "description": "List of log archive filenames.",
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "LoginResponse": {
+      "type": "object",
+      "properties": {
+        "token": {
+          "type": "string"
+        }
+      }
+    },
+    "Logs": {
+      "type": "object",
+      "properties": {
+        "logs": {
+          "description": "List of filtered logs.",
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "MessageResponse": {
+      "type": "object",
+      "properties": {
+        "message": {
+          "type": "string"
+        }
+      }
+    },
+    "MetricEntity": {
+      "type": "object",
+      "properties": {
+        "name": {
+          "description": "Metric Name",
+          "type": "string"
+        },
+        "service": {
+          "description": "Load Balancer Service Name",
+          "type": "string"
+        },
+        "value": {
+          "description": "Metric Value",
+          "type": "integer",
+          "format": "uint64"
+        }
+      }
+    },
+    "MetricsConfig": {
+      "type": "object",
+      "required": [
+        "prometheus"
+      ],
+      "properties": {
+        "prometheus": {
+          "description": "value for prometheus enable or not",
+          "type": "boolean"
         }
       }
     },
     "MirrorEntry": {
       "type": "object",
+      "required": [
+        "mirrorIdent",
+        "targetObject"
+      ],
       "properties": {
         "mirrorIdent": {
           "description": "Mirror name",
@@ -8274,8 +15212,13 @@ func init() {
               "type": "integer"
             },
             "type": {
-              "description": "One of MirrTypeSpan, MirrTypeRspan or MirrTypeErspan",
-              "type": "integer"
+              "description": "One of MirrTypeSpan, MirrTypeRspan or MirrTypeErspan(0-MirrTypeSpan, 1-MirrTypeRspan, 2-MirrTypeErspan)",
+              "type": "integer",
+              "enum": [
+                0,
+                1,
+                2
+              ]
             },
             "vlan": {
               "description": "For RSPAN we may need to send tagged mirror traffic",
@@ -8285,6 +15228,10 @@ func init() {
         },
         "targetObject": {
           "type": "object",
+          "required": [
+            "attachment",
+            "mirrObjName"
+          ],
           "properties": {
             "attachment": {
               "description": "Target Attachment",
@@ -8318,8 +15265,13 @@ func init() {
           "type": "integer"
         },
         "type": {
-          "description": "One of MirrTypeSpan, MirrTypeRspan or MirrTypeErspan",
-          "type": "integer"
+          "description": "One of MirrTypeSpan, MirrTypeRspan or MirrTypeErspan(0-MirrTypeSpan, 1-MirrTypeRspan, 2-MirrTypeErspan)",
+          "type": "integer",
+          "enum": [
+            0,
+            1,
+            2
+          ]
         },
         "vlan": {
           "description": "For RSPAN we may need to send tagged mirror traffic",
@@ -8329,6 +15281,10 @@ func init() {
     },
     "MirrorEntryTargetObject": {
       "type": "object",
+      "required": [
+        "attachment",
+        "mirrObjName"
+      ],
       "properties": {
         "attachment": {
           "description": "Target Attachment",
@@ -8442,6 +15398,11 @@ func init() {
     },
     "NeighborEntry": {
       "type": "object",
+      "required": [
+        "dev",
+        "ipAddress",
+        "macAddress"
+      ],
       "properties": {
         "dev": {
           "description": "Name of the interface device to which you want to add neighbor",
@@ -8457,17 +15418,157 @@ func init() {
         }
       }
     },
+    "NewFlowCountMetrics": {
+      "type": "object",
+      "properties": {
+        "new_flow_count": {
+          "type": "number"
+        }
+      }
+    },
+    "Node": {
+      "type": "object",
+      "properties": {
+        "color": {
+          "type": "string"
+        },
+        "icon": {
+          "type": "string"
+        },
+        "id": {
+          "type": "string"
+        },
+        "mainstat": {
+          "type": "number"
+        },
+        "nodeRadius": {
+          "type": "integer"
+        },
+        "secondarystat": {
+          "type": "number"
+        },
+        "subtitle": {
+          "type": "string"
+        },
+        "title": {
+          "type": "string"
+        }
+      }
+    },
+    "NodeGraphShcmea": {
+      "type": "object",
+      "properties": {
+        "edges": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/Edge"
+          }
+        },
+        "meta": {
+          "type": "object",
+          "properties": {
+            "preferredVisualisationType": {
+              "type": "string"
+            }
+          }
+        },
+        "nodes": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/Node"
+          }
+        },
+        "schemaVersion": {
+          "type": "integer"
+        }
+      }
+    },
+    "NodeGraphShcmeaMeta": {
+      "type": "object",
+      "properties": {
+        "preferredVisualisationType": {
+          "type": "string"
+        }
+      }
+    },
+    "OauthErrorResponse": {
+      "type": "object",
+      "properties": {
+        "message": {
+          "type": "string"
+        }
+      }
+    },
+    "OauthLoginResponse": {
+      "type": "object",
+      "properties": {
+        "expiresin": {
+          "description": "The duration in seconds that the access token is valid for.",
+          "type": "integer"
+        },
+        "id": {
+          "description": "The unique identifier for the authenticated user (e.g., Google user ID).",
+          "type": "string"
+        },
+        "refreshtoken": {
+          "description": "The refresh token used to obtain new access tokens once the current one expires.",
+          "type": "string"
+        },
+        "token": {
+          "description": "The access token used for API requests. Typically expires after a short duration.",
+          "type": "string"
+        }
+      }
+    },
+    "OauthMessageResponse": {
+      "type": "object",
+      "properties": {
+        "message": {
+          "type": "string"
+        }
+      }
+    },
+    "OauthTokenResponse": {
+      "type": "object",
+      "properties": {
+        "expiresin": {
+          "description": "The duration in seconds that the access token is valid for.",
+          "type": "integer"
+        },
+        "token": {
+          "description": "The access token used for API requests. Typically expires after a short duration.",
+          "type": "string"
+        }
+      }
+    },
     "OperParams": {
       "type": "object",
+      "required": [
+        "logLevel"
+      ],
       "properties": {
         "logLevel": {
           "description": "Set level to debug,info,error,warning,notice,critical,emergency,alert",
-          "type": "string"
+          "type": "string",
+          "enum": [
+            "debug",
+            "info",
+            "error",
+            "warning",
+            "notice",
+            "critical",
+            "emergency",
+            "alert"
+          ]
         }
       }
     },
     "PolicyEntry": {
       "type": "object",
+      "required": [
+        "policyIdent",
+        "targetObject"
+      ],
       "properties": {
         "policyIdent": {
           "description": "Policy name",
@@ -8497,13 +15598,21 @@ func init() {
               "type": "integer"
             },
             "type": {
-              "description": "policy type",
-              "type": "integer"
+              "description": "policy type(0-TrTCM, 1-SrTCM)",
+              "type": "integer",
+              "enum": [
+                0,
+                1
+              ]
             }
           }
         },
         "targetObject": {
           "type": "object",
+          "required": [
+            "attachment",
+            "polObjName"
+          ],
           "properties": {
             "attachment": {
               "description": "Target Attachment",
@@ -8541,13 +15650,21 @@ func init() {
           "type": "integer"
         },
         "type": {
-          "description": "policy type",
-          "type": "integer"
+          "description": "policy type(0-TrTCM, 1-SrTCM)",
+          "type": "integer",
+          "enum": [
+            0,
+            1
+          ]
         }
       }
     },
     "PolicyEntryTargetObject": {
       "type": "object",
+      "required": [
+        "attachment",
+        "polObjName"
+      ],
       "properties": {
         "attachment": {
           "description": "Target Attachment",
@@ -8904,8 +16021,63 @@ func init() {
         }
       }
     },
+    "ProcessedTrafficMetrics": {
+      "type": "object",
+      "properties": {
+        "processed_bytes": {
+          "type": "number"
+        },
+        "processed_packets": {
+          "type": "number"
+        },
+        "processed_sctp_bytes": {
+          "type": "number"
+        },
+        "processed_tcp_bytes": {
+          "type": "number"
+        },
+        "processed_udp_bytes": {
+          "type": "number"
+        }
+      }
+    },
+    "ReqCountPerClientMetrics": {
+      "type": "object",
+      "additionalProperties": {
+        "type": "number"
+      }
+    },
+    "RequestCountMetrics": {
+      "type": "object",
+      "properties": {
+        "total_requests": {
+          "type": "number"
+        },
+        "total_requests_per_service": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/RequestCountMetricsTotalRequestsPerServiceItems0"
+          }
+        }
+      }
+    },
+    "RequestCountMetricsTotalRequestsPerServiceItems0": {
+      "type": "object",
+      "properties": {
+        "name": {
+          "type": "string"
+        },
+        "value": {
+          "type": "number"
+        }
+      }
+    },
     "RouteEntry": {
       "type": "object",
+      "required": [
+        "destinationIPNet",
+        "gateway"
+      ],
       "properties": {
         "destinationIPNet": {
           "description": "IP address and netmask",
@@ -8913,6 +16085,10 @@ func init() {
         },
         "gateway": {
           "description": "IP address for nexthop",
+          "type": "string"
+        },
+        "protocol": {
+          "description": "Protocol type of the route like \"static\"",
           "type": "string"
         }
       }
@@ -8938,7 +16114,7 @@ func init() {
         },
         "protocol": {
           "description": "Route protocol",
-          "type": "integer"
+          "type": "string"
         },
         "statistic": {
           "type": "object",
@@ -8979,8 +16155,28 @@ func init() {
         }
       }
     },
+    "ServiceDistTrafficMetrics": {
+      "type": "object",
+      "additionalProperties": {
+        "$ref": "#/definitions/ServiceDistTrafficMetricsAnon"
+      }
+    },
+    "ServiceDistTrafficMetricsAnon": {
+      "type": "object",
+      "properties": {
+        "ratio": {
+          "type": "number"
+        },
+        "value": {
+          "type": "number"
+        }
+      }
+    },
     "SessionEntry": {
       "type": "object",
+      "required": [
+        "ident"
+      ],
       "properties": {
         "accessNetworkTunnel": {
           "type": "object",
@@ -9046,6 +16242,9 @@ func init() {
     },
     "SessionUlClEntry": {
       "type": "object",
+      "required": [
+        "ulclIdent"
+      ],
       "properties": {
         "ulclArgument": {
           "type": "object",
@@ -9079,8 +16278,61 @@ func init() {
         }
       }
     },
+    "SuccessResponse": {
+      "type": "object",
+      "properties": {
+        "message": {
+          "type": "string"
+        }
+      }
+    },
+    "User": {
+      "type": "object",
+      "required": [
+        "id",
+        "username",
+        "password"
+      ],
+      "properties": {
+        "created_at": {
+          "type": "string"
+        },
+        "id": {
+          "type": "integer"
+        },
+        "password": {
+          "type": "string"
+        },
+        "role": {
+          "type": "string",
+          "enum": [
+            "admin",
+            "viewer"
+          ]
+        },
+        "username": {
+          "type": "string"
+        }
+      }
+    },
+    "VersionGetEntry": {
+      "type": "object",
+      "properties": {
+        "buildInfo": {
+          "description": "build info",
+          "type": "string"
+        },
+        "version": {
+          "description": "Instance name",
+          "type": "string"
+        }
+      }
+    },
     "VlanBridgeEntry": {
       "type": "object",
+      "required": [
+        "vid"
+      ],
       "properties": {
         "vid": {
           "description": "Vlan ID",
@@ -9156,6 +16408,10 @@ func init() {
     },
     "VxlanBridgeEntry": {
       "type": "object",
+      "required": [
+        "epIntf",
+        "vxlanID"
+      ],
       "properties": {
         "epIntf": {
           "type": "string"
@@ -9167,6 +16423,12 @@ func init() {
     },
     "VxlanEntry": {
       "type": "object",
+      "required": [
+        "vxlanName",
+        "epIntf",
+        "vxlanID",
+        "peerIP"
+      ],
       "properties": {
         "epIntf": {
           "type": "string"
@@ -9187,12 +16449,27 @@ func init() {
     },
     "VxlanPeerEntry": {
       "type": "object",
+      "required": [
+        "peerIP"
+      ],
       "properties": {
         "peerIP": {
           "type": "string"
         }
       }
     }
-  }
+  },
+  "securityDefinitions": {
+    "BearerAuth": {
+      "type": "apiKey",
+      "name": "Authorization",
+      "in": "header"
+    }
+  },
+  "security": [
+    {
+      "BearerAuth": []
+    }
+  ]
 }`))
 }

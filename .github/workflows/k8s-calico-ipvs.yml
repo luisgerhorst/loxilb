@@ -1,8 +1,8 @@
 name: K8s-Calico-Cluster-IPVS-Sanity-CI
 on:
- #schedule:
- # Runs "At 13:00 UTC every day-of-week"
- #- cron: '0 13 * * *'
+ schedule:
+ # Runs "At 14:00 UTC every day-of-week"
+ - cron: '0 14 * * *'
  workflow_dispatch:
     inputs:
       testName:
@@ -12,7 +12,7 @@ on:
 jobs:
   test-runner:
     name: k8s-calico-cluster-ipvs-sanity
-    runs-on: self-hosted
+    runs-on: [self-hosted, large]
     if: github.repository == 'loxilb-io/loxilb' 
           &&  github.event.inputs.tagName == ''
     steps:

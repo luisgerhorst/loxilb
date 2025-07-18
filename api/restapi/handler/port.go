@@ -23,13 +23,13 @@ import (
 	"github.com/go-openapi/runtime/middleware"
 )
 
-func ConfigGetPort(params operations.GetConfigPortAllParams) middleware.Responder {
-	tk.LogIt(tk.LogDebug, "[API] Port %s API called. url : %s\n", params.HTTPRequest.Method, params.HTTPRequest.URL)
+func ConfigGetPort(params operations.GetConfigPortAllParams, principal interface{}) middleware.Responder {
+	tk.LogIt(tk.LogTrace, "api: Port %s API called. url : %s\n", params.HTTPRequest.Method, params.HTTPRequest.URL)
 
 	// Get Port informations
 	ports, err := ApiHooks.NetPortGet()
 	if err != nil {
-		tk.LogIt(tk.LogDebug, "[API] Error occur : %v\n", err)
+		tk.LogIt(tk.LogDebug, "api: Error occur : %v\n", err)
 		return &ResultResponse{Result: err.Error()}
 	}
 	var result []*models.PortEntry

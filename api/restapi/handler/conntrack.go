@@ -16,19 +16,18 @@
 package handler
 
 import (
+	"github.com/go-openapi/runtime/middleware"
 	"github.com/loxilb-io/loxilb/api/models"
 	"github.com/loxilb-io/loxilb/api/restapi/operations"
 	tk "github.com/loxilb-io/loxilib"
-
-	"github.com/go-openapi/runtime/middleware"
 )
 
-func ConfigGetConntrack(params operations.GetConfigConntrackAllParams) middleware.Responder {
-	tk.LogIt(tk.LogDebug, "[API] Conntrack %s API called. url : %s\n", params.HTTPRequest.Method, params.HTTPRequest.URL)
+func ConfigGetConntrack(params operations.GetConfigConntrackAllParams, principal interface{}) middleware.Responder {
+	tk.LogIt(tk.LogTrace, "api: Conntrack %s API called. url : %s\n", params.HTTPRequest.Method, params.HTTPRequest.URL)
 	// Get Conntrack informations
 	res, err := ApiHooks.NetCtInfoGet()
 	if err != nil {
-		tk.LogIt(tk.LogDebug, "[API] Error occur : %v\n", err)
+		tk.LogIt(tk.LogDebug, "api: Error occur : %v\n", err)
 		return &ResultResponse{Result: err.Error()}
 	}
 	var result []*models.ConntrackEntry
@@ -42,6 +41,7 @@ func ConfigGetConntrack(params operations.GetConfigConntrackAllParams) middlewar
 		tmpResult.DestinationPort = int64(conntrack.Dport)
 		tmpResult.Packets = int64(conntrack.Pkts)
 		tmpResult.Protocol = conntrack.Proto
+		tmpResult.Ident = conntrack.Ident
 		tmpResult.SourceIP = conntrack.Sip.String()
 		tmpResult.SourcePort = int64(conntrack.Sport)
 		tmpResult.ServName = conntrack.ServiceName

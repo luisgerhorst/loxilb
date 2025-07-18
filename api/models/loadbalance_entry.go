@@ -7,11 +7,13 @@ package models
 
 import (
 	"context"
+	"encoding/json"
 	"strconv"
 
 	"github.com/go-openapi/errors"
 	"github.com/go-openapi/strfmt"
 	"github.com/go-openapi/swag"
+	"github.com/go-openapi/validate"
 )
 
 // LoadbalanceEntry loadbalance entry
@@ -19,19 +21,28 @@ import (
 // swagger:model LoadbalanceEntry
 type LoadbalanceEntry struct {
 
+	// values of allowed source IP
+	AllowedSources []*LoadbalanceEntryAllowedSourcesItems0 `json:"allowedSources"`
+
 	// values of End point servers
+	// Required: true
 	Endpoints []*LoadbalanceEntryEndpointsItems0 `json:"endpoints"`
 
 	// values of Secondary IPs
 	SecondaryIPs []*LoadbalanceEntrySecondaryIPsItems0 `json:"secondaryIPs"`
 
 	// service arguments
-	ServiceArguments *LoadbalanceEntryServiceArguments `json:"serviceArguments,omitempty"`
+	// Required: true
+	ServiceArguments *LoadbalanceEntryServiceArguments `json:"serviceArguments"`
 }
 
 // Validate validates this loadbalance entry
 func (m *LoadbalanceEntry) Validate(formats strfmt.Registry) error {
 	var res []error
+
+	if err := m.validateAllowedSources(formats); err != nil {
+		res = append(res, err)
+	}
 
 	if err := m.validateEndpoints(formats); err != nil {
 		res = append(res, err)
@@ -51,9 +62,36 @@ func (m *LoadbalanceEntry) Validate(formats strfmt.Registry) error {
 	return nil
 }
 
-func (m *LoadbalanceEntry) validateEndpoints(formats strfmt.Registry) error {
-	if swag.IsZero(m.Endpoints) { // not required
+func (m *LoadbalanceEntry) validateAllowedSources(formats strfmt.Registry) error {
+	if swag.IsZero(m.AllowedSources) { // not required
 		return nil
+	}
+
+	for i := 0; i < len(m.AllowedSources); i++ {
+		if swag.IsZero(m.AllowedSources[i]) { // not required
+			continue
+		}
+
+		if m.AllowedSources[i] != nil {
+			if err := m.AllowedSources[i].Validate(formats); err != nil {
+				if ve, ok := err.(*errors.Validation); ok {
+					return ve.ValidateName("allowedSources" + "." + strconv.Itoa(i))
+				} else if ce, ok := err.(*errors.CompositeError); ok {
+					return ce.ValidateName("allowedSources" + "." + strconv.Itoa(i))
+				}
+				return err
+			}
+		}
+
+	}
+
+	return nil
+}
+
+func (m *LoadbalanceEntry) validateEndpoints(formats strfmt.Registry) error {
+
+	if err := validate.Required("endpoints", "body", m.Endpoints); err != nil {
+		return err
 	}
 
 	for i := 0; i < len(m.Endpoints); i++ {
@@ -104,8 +142,9 @@ func (m *LoadbalanceEntry) validateSecondaryIPs(formats strfmt.Registry) error {
 }
 
 func (m *LoadbalanceEntry) validateServiceArguments(formats strfmt.Registry) error {
-	if swag.IsZero(m.ServiceArguments) { // not required
-		return nil
+
+	if err := validate.Required("serviceArguments", "body", m.ServiceArguments); err != nil {
+		return err
 	}
 
 	if m.ServiceArguments != nil {
@@ -126,6 +165,10 @@ func (m *LoadbalanceEntry) validateServiceArguments(formats strfmt.Registry) err
 func (m *LoadbalanceEntry) ContextValidate(ctx context.Context, formats strfmt.Registry) error {
 	var res []error
 
+	if err := m.contextValidateAllowedSources(ctx, formats); err != nil {
+		res = append(res, err)
+	}
+
 	if err := m.contextValidateEndpoints(ctx, formats); err != nil {
 		res = append(res, err)
 	}
@@ -141,6 +184,26 @@ func (m *LoadbalanceEntry) ContextValidate(ctx context.Context, formats strfmt.R
 	if len(res) > 0 {
 		return errors.CompositeValidationError(res...)
 	}
+	return nil
+}
+
+func (m *LoadbalanceEntry) contextValidateAllowedSources(ctx context.Context, formats strfmt.Registry) error {
+
+	for i := 0; i < len(m.AllowedSources); i++ {
+
+		if m.AllowedSources[i] != nil {
+			if err := m.AllowedSources[i].ContextValidate(ctx, formats); err != nil {
+				if ve, ok := err.(*errors.Validation); ok {
+					return ve.ValidateName("allowedSources" + "." + strconv.Itoa(i))
+				} else if ce, ok := err.(*errors.CompositeError); ok {
+					return ce.ValidateName("allowedSources" + "." + strconv.Itoa(i))
+				}
+				return err
+			}
+		}
+
+	}
+
 	return nil
 }
 
@@ -218,6 +281,43 @@ func (m *LoadbalanceEntry) UnmarshalBinary(b []byte) error {
 	return nil
 }
 
+// LoadbalanceEntryAllowedSourcesItems0 loadbalance entry allowed sources items0
+//
+// swagger:model LoadbalanceEntryAllowedSourcesItems0
+type LoadbalanceEntryAllowedSourcesItems0 struct {
+
+	// IP address for allowed source access
+	Prefix string `json:"prefix,omitempty"`
+}
+
+// Validate validates this loadbalance entry allowed sources items0
+func (m *LoadbalanceEntryAllowedSourcesItems0) Validate(formats strfmt.Registry) error {
+	return nil
+}
+
+// ContextValidate validates this loadbalance entry allowed sources items0 based on context it is used
+func (m *LoadbalanceEntryAllowedSourcesItems0) ContextValidate(ctx context.Context, formats strfmt.Registry) error {
+	return nil
+}
+
+// MarshalBinary interface implementation
+func (m *LoadbalanceEntryAllowedSourcesItems0) MarshalBinary() ([]byte, error) {
+	if m == nil {
+		return nil, nil
+	}
+	return swag.WriteJSON(m)
+}
+
+// UnmarshalBinary interface implementation
+func (m *LoadbalanceEntryAllowedSourcesItems0) UnmarshalBinary(b []byte) error {
+	var res LoadbalanceEntryAllowedSourcesItems0
+	if err := swag.ReadJSON(b, &res); err != nil {
+		return err
+	}
+	*m = res
+	return nil
+}
+
 // LoadbalanceEntryEndpointsItems0 loadbalance entry endpoints items0
 //
 // swagger:model LoadbalanceEntryEndpointsItems0
@@ -227,20 +327,67 @@ type LoadbalanceEntryEndpointsItems0 struct {
 	Counter string `json:"counter,omitempty"`
 
 	// IP address for external access
-	EndpointIP string `json:"endpointIP,omitempty"`
+	// Required: true
+	EndpointIP *string `json:"endpointIP"`
 
 	// state of the endpoint
 	State string `json:"state,omitempty"`
 
 	// port number for access service
-	TargetPort int64 `json:"targetPort,omitempty"`
+	// Required: true
+	TargetPort *int64 `json:"targetPort"`
 
 	// Weight for the load balancing
-	Weight int64 `json:"weight,omitempty"`
+	// Required: true
+	Weight *int64 `json:"weight"`
 }
 
 // Validate validates this loadbalance entry endpoints items0
 func (m *LoadbalanceEntryEndpointsItems0) Validate(formats strfmt.Registry) error {
+	var res []error
+
+	if err := m.validateEndpointIP(formats); err != nil {
+		res = append(res, err)
+	}
+
+	if err := m.validateTargetPort(formats); err != nil {
+		res = append(res, err)
+	}
+
+	if err := m.validateWeight(formats); err != nil {
+		res = append(res, err)
+	}
+
+	if len(res) > 0 {
+		return errors.CompositeValidationError(res...)
+	}
+	return nil
+}
+
+func (m *LoadbalanceEntryEndpointsItems0) validateEndpointIP(formats strfmt.Registry) error {
+
+	if err := validate.Required("endpointIP", "body", m.EndpointIP); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (m *LoadbalanceEntryEndpointsItems0) validateTargetPort(formats strfmt.Registry) error {
+
+	if err := validate.Required("targetPort", "body", m.TargetPort); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (m *LoadbalanceEntryEndpointsItems0) validateWeight(formats strfmt.Registry) error {
+
+	if err := validate.Required("weight", "body", m.Weight); err != nil {
+		return err
+	}
+
 	return nil
 }
 
@@ -313,10 +460,17 @@ type LoadbalanceEntryServiceArguments struct {
 	Bgp bool `json:"bgp,omitempty"`
 
 	// block-number if any of this LB entry
-	Block uint16 `json:"block,omitempty"`
+	Block uint32 `json:"block,omitempty"`
 
-	// IP address for externel access
-	ExternalIP string `json:"externalIP,omitempty"`
+	// flag to indicate an egress rule
+	Egress bool `json:"egress,omitempty"`
+
+	// IP address for external access
+	// Required: true
+	ExternalIP *string `json:"externalIP"`
+
+	// Ingress specific host URL path
+	Host string `json:"host,omitempty"`
 
 	// value for inactivity timeout (in seconds)
 	InactiveTimeOut int32 `json:"inactiveTimeOut,omitempty"`
@@ -324,7 +478,8 @@ type LoadbalanceEntryServiceArguments struct {
 	// externally managed rule or not
 	Managed bool `json:"managed,omitempty"`
 
-	// value for NAT mode (0-DNAT, 1-oneArm, 2-fullNAT)
+	// value for NAT mode (0-DNAT,1-onearm, 2-fullnat, 3-dsr, 4-fullproxy, 5-hostonearm, 0-default)
+	// Enum: [0 1 2 3 4 5]
 	Mode int32 `json:"mode,omitempty"`
 
 	// value for monitoring enabled or not
@@ -333,8 +488,25 @@ type LoadbalanceEntryServiceArguments struct {
 	// service name
 	Name string `json:"name,omitempty"`
 
-	// port number for the access
-	Port int64 `json:"port,omitempty"`
+	// end-point specific op (0-create, 1-attachEP, 2-detachEP)
+	// Enum: [0 1 2]
+	Oper int32 `json:"oper,omitempty"`
+
+	// (Min) port number for the access
+	// Required: true
+	Port *int64 `json:"port"`
+
+	// Max port number(range) for the access
+	PortMax int64 `json:"portMax,omitempty"`
+
+	// private IP (NAT'd) address for external access
+	PrivateIP string `json:"privateIP,omitempty"`
+
+	// value for probe retries
+	ProbeRetries int32 `json:"probeRetries,omitempty"`
+
+	// value for probe timer (in seconds)
+	ProbeTimeout uint32 `json:"probeTimeout,omitempty"`
 
 	// probe port if probetype is tcp/udp/sctp
 	Probeport uint16 `json:"probeport,omitempty"`
@@ -351,12 +523,202 @@ type LoadbalanceEntryServiceArguments struct {
 	// value for access protocol
 	Protocol string `json:"protocol,omitempty"`
 
-	// value for load balance algorithim
+	// flag to enable proxy protocol v2
+	Proxyprotocolv2 bool `json:"proxyprotocolv2,omitempty"`
+
+	// value for Security mode (0-Plain, 1-https, 1-tls, 2-e2ehttps, 0-default)
+	// Enum: [0 1 2]
+	Security int32 `json:"security,omitempty"`
+
+	// value for load balance algorithim(0-rr, 1-hash, 2-priority, 3-persist, 4-lc, 5-n2, 6-n3, 0-default)
+	// Enum: [0 1 2 3 4 5 6]
 	Sel int64 `json:"sel,omitempty"`
+
+	// snat rule
+	Snat bool `json:"snat,omitempty"`
 }
 
 // Validate validates this loadbalance entry service arguments
 func (m *LoadbalanceEntryServiceArguments) Validate(formats strfmt.Registry) error {
+	var res []error
+
+	if err := m.validateExternalIP(formats); err != nil {
+		res = append(res, err)
+	}
+
+	if err := m.validateMode(formats); err != nil {
+		res = append(res, err)
+	}
+
+	if err := m.validateOper(formats); err != nil {
+		res = append(res, err)
+	}
+
+	if err := m.validatePort(formats); err != nil {
+		res = append(res, err)
+	}
+
+	if err := m.validateSecurity(formats); err != nil {
+		res = append(res, err)
+	}
+
+	if err := m.validateSel(formats); err != nil {
+		res = append(res, err)
+	}
+
+	if len(res) > 0 {
+		return errors.CompositeValidationError(res...)
+	}
+	return nil
+}
+
+func (m *LoadbalanceEntryServiceArguments) validateExternalIP(formats strfmt.Registry) error {
+
+	if err := validate.Required("serviceArguments"+"."+"externalIP", "body", m.ExternalIP); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+var loadbalanceEntryServiceArgumentsTypeModePropEnum []interface{}
+
+func init() {
+	var res []int32
+	if err := json.Unmarshal([]byte(`[0,1,2,3,4,5]`), &res); err != nil {
+		panic(err)
+	}
+	for _, v := range res {
+		loadbalanceEntryServiceArgumentsTypeModePropEnum = append(loadbalanceEntryServiceArgumentsTypeModePropEnum, v)
+	}
+}
+
+// prop value enum
+func (m *LoadbalanceEntryServiceArguments) validateModeEnum(path, location string, value int32) error {
+	if err := validate.EnumCase(path, location, value, loadbalanceEntryServiceArgumentsTypeModePropEnum, true); err != nil {
+		return err
+	}
+	return nil
+}
+
+func (m *LoadbalanceEntryServiceArguments) validateMode(formats strfmt.Registry) error {
+	if swag.IsZero(m.Mode) { // not required
+		return nil
+	}
+
+	// value enum
+	if err := m.validateModeEnum("serviceArguments"+"."+"mode", "body", m.Mode); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+var loadbalanceEntryServiceArgumentsTypeOperPropEnum []interface{}
+
+func init() {
+	var res []int32
+	if err := json.Unmarshal([]byte(`[0,1,2]`), &res); err != nil {
+		panic(err)
+	}
+	for _, v := range res {
+		loadbalanceEntryServiceArgumentsTypeOperPropEnum = append(loadbalanceEntryServiceArgumentsTypeOperPropEnum, v)
+	}
+}
+
+// prop value enum
+func (m *LoadbalanceEntryServiceArguments) validateOperEnum(path, location string, value int32) error {
+	if err := validate.EnumCase(path, location, value, loadbalanceEntryServiceArgumentsTypeOperPropEnum, true); err != nil {
+		return err
+	}
+	return nil
+}
+
+func (m *LoadbalanceEntryServiceArguments) validateOper(formats strfmt.Registry) error {
+	if swag.IsZero(m.Oper) { // not required
+		return nil
+	}
+
+	// value enum
+	if err := m.validateOperEnum("serviceArguments"+"."+"oper", "body", m.Oper); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (m *LoadbalanceEntryServiceArguments) validatePort(formats strfmt.Registry) error {
+
+	if err := validate.Required("serviceArguments"+"."+"port", "body", m.Port); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+var loadbalanceEntryServiceArgumentsTypeSecurityPropEnum []interface{}
+
+func init() {
+	var res []int32
+	if err := json.Unmarshal([]byte(`[0,1,2]`), &res); err != nil {
+		panic(err)
+	}
+	for _, v := range res {
+		loadbalanceEntryServiceArgumentsTypeSecurityPropEnum = append(loadbalanceEntryServiceArgumentsTypeSecurityPropEnum, v)
+	}
+}
+
+// prop value enum
+func (m *LoadbalanceEntryServiceArguments) validateSecurityEnum(path, location string, value int32) error {
+	if err := validate.EnumCase(path, location, value, loadbalanceEntryServiceArgumentsTypeSecurityPropEnum, true); err != nil {
+		return err
+	}
+	return nil
+}
+
+func (m *LoadbalanceEntryServiceArguments) validateSecurity(formats strfmt.Registry) error {
+	if swag.IsZero(m.Security) { // not required
+		return nil
+	}
+
+	// value enum
+	if err := m.validateSecurityEnum("serviceArguments"+"."+"security", "body", m.Security); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+var loadbalanceEntryServiceArgumentsTypeSelPropEnum []interface{}
+
+func init() {
+	var res []int64
+	if err := json.Unmarshal([]byte(`[0,1,2,3,4,5,6]`), &res); err != nil {
+		panic(err)
+	}
+	for _, v := range res {
+		loadbalanceEntryServiceArgumentsTypeSelPropEnum = append(loadbalanceEntryServiceArgumentsTypeSelPropEnum, v)
+	}
+}
+
+// prop value enum
+func (m *LoadbalanceEntryServiceArguments) validateSelEnum(path, location string, value int64) error {
+	if err := validate.EnumCase(path, location, value, loadbalanceEntryServiceArgumentsTypeSelPropEnum, true); err != nil {
+		return err
+	}
+	return nil
+}
+
+func (m *LoadbalanceEntryServiceArguments) validateSel(formats strfmt.Registry) error {
+	if swag.IsZero(m.Sel) { // not required
+		return nil
+	}
+
+	// value enum
+	if err := m.validateSelEnum("serviceArguments"+"."+"sel", "body", m.Sel); err != nil {
+		return err
+	}
+
 	return nil
 }
 

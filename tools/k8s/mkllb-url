@@ -1,0 +1,85 @@
+#!/bin/bash
+
+usage() {
+    echo "Usage: $0 -a <ip-addr> -z <zone> -t <type> -c <cloud>"
+    echo "       $0 -a <ip-addr> -z <zone> -t <type> -c <cloud> -x"
+}
+
+if [[ $# -gt 9 ]] || [[ $# -lt 6 ]]; then
+   usage
+   exit
+fi
+
+if [[ ! -f /usr/local/sbin/kubectl ]]; then
+    apt-get update && apt-get install -y curl
+    curl -LO "https://dl.k8s.io/release/$(curl -L -s https://dl.k8s.io/release/stable.txt)/bin/linux/amd64/kubectl"
+    chmod +x kubectl
+    sudo mv kubectl /usr/local/sbin/kubectl
+fi
+
+addr=""
+cloud="bm"
+zone="llb"
+utype="default"
+cmd="apply"
+
+while getopts a:z:t:c:x opt
+do
+    case "${opt}" in
+        a) addr=${OPTARG};;
+        z) zone=${OPTARG};;
+        t) utype=${OPTARG};;
+        x) cmd="delete";;
+        c) cloud=${OPTARG};;
+        ?) usage;exit;;
+    esac
+done
+
+laddr=${addr}
+
+if [[ ${cloud} == "aws" ]]; then
+  if [[ ! -f /usr/local/bin/aws ]]; then
+    apt install -y unzip
+    curl "https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip" -o "awscliv2.zip"
+    unzip awscliv2.zip && ./aws/install
+  fi
+  token=`curl -s -m 10 -X PUT http://169.254.169.254/latest/api/token -H "X-aws-ec2-metadata-token-ttl-seconds: 21600"` && \
+  laddr=`curl -s -m 10 -H "X-aws-ec2-metadata-token: $token" http://169.254.169.254/latest/meta-data/local-ipv4`
+  if [[ "x$addr" == "xlocal" ]]; then
+    addr=$laddr
+  else
+    addr=`curl -s -m 10 -H "X-aws-ec2-metadata-token: $token" http://169.254.169.254/latest/meta-data/public-ipv4`
+  fi
+else
+  if [[ "x$addr" == "x0.0.0.0" ]]; then
+    laddr=`ip route get 8.8.8.8 | head -1 | cut -d' ' -f3`
+    addr=`ip route get 8.8.8.8 | head -1 | cut -d' ' -f3`
+  fi
+fi
+
+if [[ ${utype} == "hostcidr" ]]; then
+  url=${addr}
+else
+  url="http://${addr}:11111"
+fi
+
+echo "============"
+echo "Applying CRD"
+echo "============"
+echo name llb-${laddr}
+echo url $url
+echo zone $zone
+echo utype $utype
+echo cmd $cmd
+echo "============"
+
+cat <<EOF | kubectl ${cmd} -f -
+apiVersion: "loxiurl.loxilb.io/v1"
+kind: LoxiURL
+metadata:
+  name: llb-${laddr}
+spec:
+  loxiURL: $url
+  zone: llb
+  type: ${utype}
+EOF

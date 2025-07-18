@@ -17,6 +17,12 @@
 package api
 
 import (
+	_ "embed"
+	"log"
+	"os"
+	"runtime/debug"
+	"time"
+
 	"github.com/go-openapi/loads"
 	flags "github.com/jessevdk/go-flags"
 	"github.com/loxilb-io/loxilb/api/restapi"
@@ -25,10 +31,6 @@ import (
 	cmn "github.com/loxilb-io/loxilb/common"
 	"github.com/loxilb-io/loxilb/options"
 	tk "github.com/loxilb-io/loxilib"
-	"log"
-	"os"
-	"runtime/debug"
-	"time"
 )
 
 var (
@@ -39,6 +41,13 @@ var (
 // RegisterAPIHooks - routine to register interface for api
 func RegisterAPIHooks(hooks cmn.NetHookInterface) {
 	handler.ApiHooks = hooks
+}
+
+//go:embed swagger.yml
+var EmbeddedSwagger []byte
+
+func EmbeddedSwaggerInit() {
+	handler.EmbeddedSwagger = EmbeddedSwagger
 }
 
 // WaitAPIServerReady - routine to wait till api server is up
@@ -77,6 +86,8 @@ func RunAPIServer() {
 		if e := recover(); e != nil {
 			tk.LogIt(tk.LogCritical, "%s: %s", e, debug.Stack())
 		}
+		handler.ApiHooks.NetHandlePanic()
+		os.Exit(1)
 	}()
 
 	if ApiShutOk == nil {
@@ -115,16 +126,23 @@ func RunAPIServer() {
 	server.ConfigureAPI()
 	// API server host list
 	server.Host = options.Opts.Host
-	server.TLSHost = options.Opts.TLSHost
-	server.TLSCertificateKey = options.Opts.TLSCertificateKey
-	server.TLSCertificate = options.Opts.TLSCertificate
 	server.Port = options.Opts.Port
-	server.TLSPort = options.Opts.TLSPort
+
+	// HTTPs List
+	if options.Opts.TLS {
+		server.TLSHost = options.Opts.TLSHost
+		server.TLSPort = options.Opts.TLSPort
+
+		server.TLSCertificateKey = options.Opts.TLSCertificateKey
+		server.TLSCertificate = options.Opts.TLSCertificate
+	}
+
 	api.ServerShutdown = func() {
 		waitApiServerShutOk()
 		os.Exit(0)
 	}
 	ApiReady = true
+	EmbeddedSwaggerInit()
 
 	if err := server.Serve(); err != nil {
 		log.Fatalln(err)

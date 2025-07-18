@@ -24,14 +24,14 @@ import (
 	"github.com/go-openapi/runtime/middleware"
 )
 
-func ConfigPostPolicy(params operations.PostConfigPolicyParams) middleware.Responder {
-	tk.LogIt(tk.LogDebug, "[API] Policy %s API called. url : %s\n", params.HTTPRequest.Method, params.HTTPRequest.URL)
+func ConfigPostPolicy(params operations.PostConfigPolicyParams, principal interface{}) middleware.Responder {
+	tk.LogIt(tk.LogTrace, "api: Policy %s API called. url : %s\n", params.HTTPRequest.Method, params.HTTPRequest.URL)
 
 	var polMod cmn.PolMod
 
 	// Ident Setting
-	if params.Attr.PolicyIdent != "" {
-		polMod.Ident = params.Attr.PolicyIdent
+	if params.Attr.PolicyIdent != nil {
+		polMod.Ident = *params.Attr.PolicyIdent
 	}
 
 	// Info Setting
@@ -46,39 +46,43 @@ func ConfigPostPolicy(params operations.PostConfigPolicyParams) middleware.Respo
 
 	// Target Setting
 	if params.Attr.TargetObject != nil {
-		polMod.Target.PolObjName = params.Attr.TargetObject.PolObjName
-		polMod.Target.AttachMent = cmn.PolObjType(params.Attr.TargetObject.Attachment)
+		if params.Attr.TargetObject.PolObjName != nil {
+			polMod.Target.PolObjName = *params.Attr.TargetObject.PolObjName
+		}
+		if params.Attr.TargetObject.Attachment != nil {
+			polMod.Target.AttachMent = cmn.PolObjType(*params.Attr.TargetObject.Attachment)
+		}
 	}
 
-	tk.LogIt(tk.LogDebug, "[API] polMod : %v\n", polMod)
+	tk.LogIt(tk.LogDebug, "api: polMod : %v\n", polMod)
 	_, err := ApiHooks.NetPolicerAdd(&polMod)
 	if err != nil {
-		tk.LogIt(tk.LogDebug, "[API] Error occur : %v\n", err)
+		tk.LogIt(tk.LogDebug, "api: Error occur : %v\n", err)
 		return &ResultResponse{Result: err.Error()}
 	}
 	return &ResultResponse{Result: "Success"}
 }
 
-func ConfigDeletePolicy(params operations.DeleteConfigPolicyIdentIdentParams) middleware.Responder {
-	tk.LogIt(tk.LogDebug, "[API] Policy %s API called. url : %s\n", params.HTTPRequest.Method, params.HTTPRequest.URL)
+func ConfigDeletePolicy(params operations.DeleteConfigPolicyIdentIdentParams, principal interface{}) middleware.Responder {
+	tk.LogIt(tk.LogTrace, "api: Policy %s API called. url : %s\n", params.HTTPRequest.Method, params.HTTPRequest.URL)
 	var polMod cmn.PolMod
 
 	polMod.Ident = params.Ident
 
-	tk.LogIt(tk.LogDebug, "[API] polMod : %v\n", polMod)
+	tk.LogIt(tk.LogDebug, "api: polMod : %v\n", polMod)
 	_, err := ApiHooks.NetPolicerDel(&polMod)
 	if err != nil {
-		tk.LogIt(tk.LogDebug, "[API] Error occur : %v\n", err)
+		tk.LogIt(tk.LogDebug, "api: Error occur : %v\n", err)
 		return &ResultResponse{Result: err.Error()}
 	}
 	return &ResultResponse{Result: "Success"}
 }
 
-func ConfigGetPolicy(params operations.GetConfigPolicyAllParams) middleware.Responder {
-	tk.LogIt(tk.LogDebug, "[API] Policy %s API called. url : %s\n", params.HTTPRequest.Method, params.HTTPRequest.URL)
+func ConfigGetPolicy(params operations.GetConfigPolicyAllParams, principal interface{}) middleware.Responder {
+	tk.LogIt(tk.LogTrace, "api: Policy %s API called. url : %s\n", params.HTTPRequest.Method, params.HTTPRequest.URL)
 	res, err := ApiHooks.NetPolicerGet()
 	if err != nil {
-		tk.LogIt(tk.LogDebug, "[API] Error occur : %v\n", err)
+		tk.LogIt(tk.LogDebug, "api: Error occur : %v\n", err)
 		return &ResultResponse{Result: err.Error()}
 	}
 
@@ -89,7 +93,7 @@ func ConfigGetPolicy(params operations.GetConfigPolicyAllParams) middleware.Resp
 		var tmpInfo models.PolicyEntryPolicyInfo
 		var tmpTarget models.PolicyEntryTargetObject
 		// ID match
-		tmpPol.PolicyIdent = policy.Ident
+		tmpPol.PolicyIdent = &policy.Ident
 		// Info match
 		tmpInfo.ColorAware = policy.Info.ColorAware
 		tmpInfo.CommittedBlkSize = int64(policy.Info.CommittedBlkSize)
@@ -98,8 +102,9 @@ func ConfigGetPolicy(params operations.GetConfigPolicyAllParams) middleware.Resp
 		tmpInfo.PeakInfoRate = int64(policy.Info.PeakInfoRate)
 		tmpInfo.Type = int64(policy.Info.PolType)
 		// Target match
-		tmpTarget.Attachment = int64(policy.Target.AttachMent)
-		tmpTarget.PolObjName = policy.Target.PolObjName
+		attachment := int64(policy.Target.AttachMent)
+		tmpTarget.Attachment = &attachment
+		tmpTarget.PolObjName = &policy.Target.PolObjName
 
 		// Assign policy info and target
 		tmpPol.PolicyInfo = &tmpInfo

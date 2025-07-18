@@ -18,15 +18,17 @@ package main
 
 import (
 	"fmt"
-	"github.com/jessevdk/go-flags"
-	ln "github.com/loxilb-io/loxilb/loxinet"
-	opts "github.com/loxilb-io/loxilb/options"
 	"os"
 	"time"
+
+	"github.com/jessevdk/go-flags"
+	"github.com/loxilb-io/loxilb/common"
+	opts "github.com/loxilb-io/loxilb/options"
+	ln "github.com/loxilb-io/loxilb/pkg/loxinet"
 )
 
-var version string = "0.9.0"
-var buildInfo string = ""
+// var version string = "0.9.7-beta"
+// var buildInfo string = ""
 
 func main() {
 	fmt.Printf("loxilb start\n")
@@ -38,12 +40,18 @@ func main() {
 		os.Exit(1)
 	}
 
+	// Validate options
+	if err := opts.ValidateOpts(); err != nil {
+		fmt.Println(err)
+		os.Exit(1)
+	}
+
 	if opts.Opts.Version {
-		fmt.Printf("loxilb version: %s %s\n", version, buildInfo)
+		fmt.Printf("loxilb version: %s %s\n", common.Version, common.BuildInfo)
 		os.Exit(0)
 	}
 
-	go ln.LoxiXsyncMain(opts.Opts.Rpc)
+	go ln.LoxiXsyncMain(opts.Opts.RPC)
 	// Need some time for RPC Handler to be up
 	time.Sleep(2 * time.Second)
 

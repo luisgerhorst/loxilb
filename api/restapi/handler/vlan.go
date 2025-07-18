@@ -23,17 +23,21 @@ import (
 	tk "github.com/loxilb-io/loxilib"
 )
 
-func ConfigPostVLAN(params operations.PostConfigVlanParams) middleware.Responder {
-	tk.LogIt(tk.LogDebug, "[API] Vlan %s API called. url : %s\n", params.HTTPRequest.Method, params.HTTPRequest.URL)
-	ret := loxinlp.AddVLANNoHook(int(params.Attr.Vid))
+func ConfigPostVLAN(params operations.PostConfigVlanParams, principal interface{}) middleware.Responder {
+	tk.LogIt(tk.LogTrace, "api: Vlan %s API called. url : %s\n", params.HTTPRequest.Method, params.HTTPRequest.URL)
+	var vid int
+	if params.Attr.Vid != nil {
+		vid = int(*params.Attr.Vid)
+	}
+	ret := loxinlp.AddVLANNoHook(vid)
 	if ret != 0 {
 		return &ResultResponse{Result: "fail"}
 	}
 	return &ResultResponse{Result: "Success"}
 }
 
-func ConfigDeleteVLAN(params operations.DeleteConfigVlanVlanIDParams) middleware.Responder {
-	tk.LogIt(tk.LogDebug, "[API] Vlan %s API called. url : %s\n", params.HTTPRequest.Method, params.HTTPRequest.URL)
+func ConfigDeleteVLAN(params operations.DeleteConfigVlanVlanIDParams, principal interface{}) middleware.Responder {
+	tk.LogIt(tk.LogTrace, "api: Vlan %s API called. url : %s\n", params.HTTPRequest.Method, params.HTTPRequest.URL)
 	ret := loxinlp.DelVLANNoHook(int(params.VlanID))
 	if ret != 0 {
 		return &ResultResponse{Result: "fail"}
@@ -41,8 +45,8 @@ func ConfigDeleteVLAN(params operations.DeleteConfigVlanVlanIDParams) middleware
 	return &ResultResponse{Result: "Success"}
 }
 
-func ConfigPostVLANMember(params operations.PostConfigVlanVlanIDMemberParams) middleware.Responder {
-	tk.LogIt(tk.LogDebug, "[API] Vlan %s API called. url : %s\n", params.HTTPRequest.Method, params.HTTPRequest.URL)
+func ConfigPostVLANMember(params operations.PostConfigVlanVlanIDMemberParams, principal interface{}) middleware.Responder {
+	tk.LogIt(tk.LogTrace, "api: Vlan %s API called. url : %s\n", params.HTTPRequest.Method, params.HTTPRequest.URL)
 	ret := loxinlp.AddVLANMemberNoHook(int(params.VlanID), params.Attr.Dev, params.Attr.Tagged)
 	if ret != 0 {
 		return &ResultResponse{Result: "fail"}
@@ -50,8 +54,8 @@ func ConfigPostVLANMember(params operations.PostConfigVlanVlanIDMemberParams) mi
 	return &ResultResponse{Result: "Success"}
 }
 
-func ConfigDeleteVLANMember(params operations.DeleteConfigVlanVlanIDMemberIfNameTaggedTaggedParams) middleware.Responder {
-	tk.LogIt(tk.LogDebug, "[API] Vlan %s API called. url : %s\n", params.HTTPRequest.Method, params.HTTPRequest.URL)
+func ConfigDeleteVLANMember(params operations.DeleteConfigVlanVlanIDMemberIfNameTaggedTaggedParams, principal interface{}) middleware.Responder {
+	tk.LogIt(tk.LogTrace, "api: Vlan %s API called. url : %s\n", params.HTTPRequest.Method, params.HTTPRequest.URL)
 	ret := loxinlp.DelVLANMemberNoHook(int(params.VlanID), params.IfName, params.Tagged)
 	if ret != 0 {
 		return &ResultResponse{Result: "fail"}
@@ -59,8 +63,8 @@ func ConfigDeleteVLANMember(params operations.DeleteConfigVlanVlanIDMemberIfName
 	return &ResultResponse{Result: "Success"}
 }
 
-func ConfigGetVLAN(params operations.GetConfigVlanAllParams) middleware.Responder {
-	tk.LogIt(tk.LogDebug, "[API] Vlan   %s API called. url : %s\n", params.HTTPRequest.Method, params.HTTPRequest.URL)
+func ConfigGetVLAN(params operations.GetConfigVlanAllParams, principal interface{}) middleware.Responder {
+	tk.LogIt(tk.LogTrace, "api: Vlan   %s API called. url : %s\n", params.HTTPRequest.Method, params.HTTPRequest.URL)
 	res, _ := ApiHooks.NetVlanGet()
 	var result []*models.VlanGetEntry
 	result = make([]*models.VlanGetEntry, 0)

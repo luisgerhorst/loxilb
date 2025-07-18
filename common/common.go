@@ -18,7 +18,14 @@ package common
 
 import (
 	"net"
+	"time"
 )
+
+const (
+	Version = "0.9.8.4-beta"
+)
+
+var BuildInfo string = ""
 
 // This file defines the go interface implementation needed to interact with loxinet go module
 
@@ -33,9 +40,22 @@ const (
 	CIStateNotDefined
 )
 
+const BFDPort = 3784
+const BFDDefRetryCount = 3
+
 const (
 	// CIDefault - Default CI Instance name
-	CIDefault = "default"
+	CIDefault = "llb-inst0"
+	// CIMasterStateString - Master state string for a cluster instance
+	CIMasterStateString = "MASTER"
+	// CIBackupStateString - Backup state string for a cluster instance
+	CIBackupStateString = "BACKUP"
+	// CIFaultStateString - Fault state string for a cluster instance
+	CIFaultStateString = "FAULT"
+	// CIStopStateString - Stop state string for a cluster instance
+	CIStopStateString = "STOP"
+	// CIUnDefStateString - Undefined state string for a cluster instance
+	CIUnDefStateString = "NOT_DEFINED"
 )
 
 const (
@@ -65,11 +85,11 @@ const (
 
 const (
 	// AuWorkqLen - Address worker channel depth
-	AuWorkqLen = 1024
+	AuWorkqLen = 2048
 	// LuWorkQLen - Link worker channel depth
-	LuWorkQLen = 1024
+	LuWorkQLen = 2048
 	// NuWorkQLen - Neigh worker channel depth
-	NuWorkQLen = 1024
+	NuWorkQLen = 2048
 	// RuWorkQLen - Route worker channel depth
 	RuWorkQLen = 40827
 )
@@ -367,16 +387,22 @@ type RouteGet struct {
 	Sync DpStatusT
 }
 
+// GWInfo - Info about gateway
+type GWInfo struct {
+	// Gw - gateway information if any
+	Gw net.IP
+	// LinkIndex - OS allocated index
+	LinkIndex int
+}
+
 // RouteMod - Info about a route
 type RouteMod struct {
 	// Protocol - Protocol type
 	Protocol int
 	// Flags - flag type
 	Flags int
-	// Gw - gateway information if any
-	Gw net.IP
-	// LinkIndex - OS allocated index
-	LinkIndex int
+	// GWs - gateway information if any
+	GWs []GWInfo
 	// Dst - ip addr
 	Dst net.IPNet
 }
@@ -396,6 +422,14 @@ type FwOptArg struct {
 	Allow bool `json:"allow"`
 	// Mark - Mark the matching rule
 	Mark uint32 `json:"fwMark"`
+	// DoSnat - Do snat on matching rule
+	DoSnat bool   `json:"doSnat"`
+	ToIP   string `json:"toIP"`
+	ToPort uint16 `json:"toPort"`
+	// OnDefault - Trigger only on default cases
+	OnDefault bool `json:"onDefault"`
+	// Counter - Traffic counter
+	Counter string `json:"counter"`
 }
 
 // FwRuleArg - Information related to firewall rule
@@ -417,7 +451,7 @@ type FwRuleArg struct {
 	// InPort - the incoming port
 	InPort string `json:"portName"`
 	// Pref - User preference for ordering
-	Pref uint16 `json:"preference"`
+	Pref uint32 `json:"preference"`
 }
 
 // FwRuleMod - Info related to a firewall entry
@@ -457,6 +491,29 @@ type EndPointMod struct {
 	CurrState string `json:"currState"`
 }
 
+const (
+	// HostStateGreen - Host is healthy
+	HostStateGreen = "green"
+	// HostStateYellow - Host is under load
+	HostStateYellow = "yellow"
+	// HostStateRed - Host is not healthy
+	HostStateRed = "red"
+	// HostStateUnknown - Host state is not known
+	HostStateUnknown = ""
+)
+
+// EndPointHostMod - Info related to an end-point host entry
+type EndPointHostMod struct {
+	// HostName - hostname in CIDR
+	HostName string `json:"hostName"`
+	// EPPort - The end-point port (0 if not applicable)
+	EPPort uint16 `json:"epPort"`
+	// EPProto - The end-point prototype (empty if not applicable)
+	EPProto string `json:"epProto"`
+	//  State - Host state string
+	State string `json:"state"`
+}
+
 // EpSelect - Selection method of load-balancer end-point
 type EpSelect uint
 
@@ -467,6 +524,14 @@ const (
 	LbSelHash
 	// LbSelPrio - select the lb based on weighted round-robin
 	LbSelPrio
+	// LbSelRrPersist - persist connections from same client
+	LbSelRrPersist
+	// LbSelLeastConnections - select client based on least connections
+	LbSelLeastConnections
+	// LbSelN2 - select client based on N2 SCTP interface
+	LbSelN2
+	// LbSelN3 - select client based on N3 interface
+	LbSelN3
 )
 
 // LBMode - Variable to define LB mode
@@ -481,24 +546,60 @@ const (
 	LBModeFullNAT
 	// LBModeDSR - DSR Mode
 	LBModeDSR
+	// LBModeFullProxy
+	LBModeFullProxy
+	// LBModeHostOneArm
+	LBModeHostOneArm
+)
+
+// LBOp - Variable to LB operation
+type LBOp int32
+
+const (
+	// LBOPAdd - Add the LB rule (replace if existing)
+	LBOPAdd LBOp = iota
+	// LBOPAttach - Attach End-Points
+	LBOPAttach
+	// LBOPDetach - Detach End-Points
+	LBOPDetach
+)
+
+// LBSec - Variable to define LB front-end security
+type LBSec int32
+
+const (
+	// LBServPlain - Plain mode
+	LBServPlain LBSec = iota
+	// LBServHTTPS - HTTPS termination
+	LBServHTTPS
+	// LBServE2EHTTPS - HTTPS proxy
+	LBServE2EHTTPS
 )
 
 // LbServiceArg - Information related to load-balancer service
 type LbServiceArg struct {
 	// ServIP - the service ip or vip  of the load-balancer rule
 	ServIP string `json:"externalIP"`
-	// ServPort - the service port of the load-balancer rule
+	// PrivateIP - the private service ip or vip of the load-balancer rule
+	PrivateIP string `json:"privateIP"`
+	// ServPort - the min service port of the load-balancer rule
 	ServPort uint16 `json:"port"`
+	// ServPortMax - the max service port of the load-balancer rule
+	ServPortMax uint16 `json:"portMax"`
 	// Proto - the service protocol of the load-balancer rule
 	Proto string `json:"protocol"`
 	// BlockNum - An arbitrary block num to further segregate a service
-	BlockNum uint16 `json:"block"`
+	BlockNum uint32 `json:"block"`
 	// Sel - one of LbSelRr,LbSelHash, or LbSelHash
 	Sel EpSelect `json:"sel"`
 	// Bgp - export this rule with goBGP
 	Bgp bool `json:"bgp"`
 	// Monitor - monitor end-points of this rule
 	Monitor bool `json:"monitor"`
+	// Oper - Attach/Detach if the LB already exists
+	Oper LBOp `json:"oper"`
+	// Security - Security mode if any
+	Security LBSec `json:"lbsec"`
 	// Mode - NAT mode
 	Mode LBMode `json:"mode"`
 	// InactiveTimeout - Forced session reset after inactive timeout
@@ -513,8 +614,22 @@ type LbServiceArg struct {
 	ProbeReq string `json:"probereq"`
 	// ProbeResp - Response string for liveness check
 	ProbeResp string `json:"proberesp"`
+	// ProbeTimeout - Probe Timeout
+	ProbeTimeout uint32 `json:"probeTimeout"`
+	// ProbeRetries - Probe Retries
+	ProbeRetries int `json:"probeRetries"`
 	// Name - Service name
 	Name string `json:"name"`
+	// PersistTimeout - Persistence timeout in seconds
+	PersistTimeout uint32 `json:"persistTimeout"`
+	// Snat - Do SNAT
+	Snat bool `json:"snat"`
+	// HostUrl - Ingress Specific URL path
+	HostUrl string `json:"path"`
+	// ProxyProtocolV2 - Enable proxy protocol v2
+	ProxyProtocolV2 bool `json:"proxyprotocolv2"`
+	// Egress - Egress Rule
+	Egress bool `json:"egress"`
 }
 
 // LbEndPointArg - Information related to load-balancer end-point
@@ -538,12 +653,20 @@ type LbSecIPArg struct {
 	SecIP string `json:"secondaryIP"`
 }
 
+// LbAllowedSrcIPArg - Allowed Src IPs
+type LbAllowedSrcIPArg struct {
+	// Prefix - Allowed Prefix
+	Prefix string `json:"prefix"`
+}
+
 // LbRuleMod - Info related to a load-balancer entry
 type LbRuleMod struct {
 	// Serv - service argument of type LbServiceArg
 	Serv LbServiceArg `json:"serviceArguments"`
 	// SecIPs - Secondary IPs for SCTP multi-homed service
 	SecIPs []LbSecIPArg `json:"secondaryIPs"`
+	// SrcIPs - Allowed Source IPs
+	SrcIPs []LbAllowedSrcIPArg `json:"allowedSources"`
 	// Eps - slice containing LbEndPointArg
 	Eps []LbEndPointArg `json:"endpoints"`
 }
@@ -560,6 +683,8 @@ type CtInfo struct {
 	Sport uint16 `json:"sourcePort"`
 	// Proto - IP protocol information
 	Proto string `json:"protocol"`
+	// Ident - Identity val
+	Ident string `json:"ident"`
 	// CState - current state of conntrack
 	CState string `json:"conntrackState"`
 	// CAct - any related action
@@ -612,6 +737,148 @@ type GoBGPNeighMod struct {
 	MultiHop   bool   `json:"multiHop"`
 }
 
+// GoBGPNeighGetMod - Info related to goBGP neigh
+type GoBGPNeighGetMod struct {
+	Addr     string `json:"neighIP"`
+	RemoteAS uint32 `json:"remoteAS"`
+	State    string `json:"state"`
+	Uptime   string `json:"uptime"`
+}
+
+type GoBGPPolicyDefinedSetMod struct {
+	Name              string   `json:"name"`
+	DefinedTypeString string   `json:"definedTypeString"`
+	List              []string `json:"list,omitempty"`
+	PrefixList        []Prefix `json:"prefixList,omitempty"`
+}
+
+// GoBGPPolicyNeighMod - Info related to goBGP policy about neigh
+type GoBGPPolicyNeighMod struct {
+	Name             string   `json:"name"`
+	NeighborInfoList []string `json:"neighborInfoList"`
+}
+
+// GoBGPPolicyCommunityMod - Info related to goBGP policy about neigh
+type GoBGPPolicyCommunityMod struct {
+	Name          string   `json:"name"`
+	CommunityList []string `json:"communityList"`
+}
+
+// GoBGPPolicyExtCommunityListMod - Info related to goBGP policy about neigh
+type GoBGPPolicyExtCommunityMod struct {
+	Name             string   `json:"name"`
+	ExtCommunityList []string `json:"extCommunityList"`
+}
+
+// GoBGPPolicyAsPAthMod - Info related to goBGP policy about neigh
+type GoBGPPolicyAsPathMod struct {
+	Name       string   `json:"name"`
+	AsPathList []string `json:"asPathList"`
+}
+
+// GoBGPPolicyLargeCommunityMod - Info related to goBGP policy about neigh
+type GoBGPPolicyLargeCommunityMod struct {
+	Name               string   `json:"name"`
+	LargeCommunityList []string `json:"largeCommunityList"`
+}
+
+// GoBGPPolicyPrefixSetMod - Info related to goBGP Policy prefix
+type GoBGPPolicyPrefixSetMod struct {
+	Name       string   `json:"name"`
+	PrefixList []Prefix `json:"prefixList"`
+}
+
+// Prefix - Info related to goBGP Policy Prefix
+type Prefix struct {
+	IpPrefix        string `json:"ipPrefix"`
+	MasklengthRange string `json:"masklengthRange"`
+}
+
+// GoBGPPolicyDefineSetMod -
+type GoBGPPolicyDefinitionsMod struct {
+	Name      string      `json:"name"`
+	Statement []Statement `json:"prefixList"`
+}
+
+type Statement struct {
+	Name       string     `json:"name,omitempty"`
+	Conditions Conditions `json:"conditions,omitempty"`
+	Actions    Actions    `json:"actions,omitempty"`
+}
+
+type Actions struct {
+	RouteDisposition string     `json:"routeDisposition"`
+	BGPActions       BGPActions `json:"bgpActions,omitempty"`
+}
+
+type BGPActions struct {
+	SetMed            string           `json:"setMed,omitempty"`
+	SetCommunity      SetCommunity     `json:"setCommunity,omitempty"`
+	SetExtCommunity   SetCommunity     `json:"setExtCommunity,omitempty"`
+	SetLargeCommunity SetCommunity     `json:"setLargeCommunity,omitempty"`
+	SetNextHop        string           `json:"setNextHop,omitempty"`
+	SetLocalPerf      int              `json:"setLocalPerf,omitempty"`
+	SetAsPathPrepend  SetAsPathPrepend `json:"setAsPathPrepend,omitempty"`
+}
+
+type SetCommunity struct {
+	Options            string   `json:"options,omitempty"`
+	SetCommunityMethod []string `json:"setCommunityMethod,omitempty"`
+}
+
+type SetAsPathPrepend struct {
+	ASN     string `json:"as,omitempty"`
+	RepeatN int    `json:"repeatN,omitempty"`
+}
+
+type Conditions struct {
+	PrefixSet     MatchPrefixSet   `json:"matchPrefixSet,omitempty"`
+	NeighborSet   MatchNeighborSet `json:"matchNeighborSet,omitempty"`
+	BGPConditions BGPConditions    `json:"bgpconditions"`
+}
+
+type MatchNeighborSet struct {
+	MatchSetOption string `json:"matchSetOption,omitempty"`
+	NeighborSet    string `json:"NeighborSet,omitempty"`
+}
+
+type MatchPrefixSet struct {
+	MatchSetOption string `json:"matchSetOption,omitempty"`
+	PrefixSet      string `json:"prefixSet,omitempty"`
+}
+
+type BGPConditions struct {
+	AfiSafiIn         []string        `json:"afiSafiIn,omitempty"`
+	AsPathSet         BGPAsPathSet    `json:"matchAsPathSet,omitempty"`
+	AsPathLength      BGPAsPathLength `json:"asPathLength,omitempty"`
+	CommunitySet      BGPCommunitySet `json:"matchCommunitySet,omitempty"`
+	ExtCommunitySet   BGPCommunitySet `json:"matchExtCommunitySet,omitempty"`
+	LargeCommunitySet BGPCommunitySet `json:"largeCommunitySet,omitempty"`
+	RouteType         string          `json:"routeType,omitempty"`
+	NextHopInList     []string        `json:"nextHopInList,omitempty"`
+	Rpki              string          `json:"rpki,omitempty"`
+}
+
+type BGPAsPathLength struct {
+	Operator string `json:"Operator,omitempty"`
+	Value    int    `json:"Value,omitempty"`
+}
+type BGPAsPathSet struct {
+	AsPathSet       string `json:"asPathSet,omitempty"`
+	MatchSetOptions string `json:"matchSetOptions,omitempty"`
+}
+type BGPCommunitySet struct {
+	CommunitySet    string `json:"communitySet,omitempty"`
+	MatchSetOptions string `json:"matchSetOptions,omitempty"`
+}
+
+type GoBGPPolicyApply struct {
+	NeighIPAddress string   `json:"ipAddress,omitempty"`
+	PolicyType     string   `json:"policyType,omitempty"`
+	Polices        []string `json:"polices,omitempty"`
+	RouteAction    string   `json:"routeAction,omitempty"`
+}
+
 // Equal - check if two session tunnel entries are equal
 func (ut *SessTun) Equal(ut1 *SessTun) bool {
 	if ut.TeID == ut1.TeID && ut.Addr.Equal(ut1.Addr) {
@@ -650,10 +917,29 @@ type HASMod struct {
 	Vip net.IP `json:"Addr"`
 }
 
+// BFDMod - information related to a BFD session
+type BFDMod struct {
+	// Instance - Cluster Instance
+	Instance string `json:"instance"`
+	// RemoteIP - Remote IP for BFD session
+	RemoteIP net.IP `json:"remoteIp"`
+	// Interval - Tx Interval between BFD packets
+	SourceIP net.IP `json:"sourceIp"`
+	// Port - BFD session port
+	Port uint16 `json:"port"`
+	// Interval - Tx Interval between BFD packets
+	Interval uint64 `json:"interval"`
+	// RetryCount - Retry Count for detecting failure
+	RetryCount uint8 `json:"retryCount"`
+	// State - BFD session state
+	State string `json:"state"`
+}
+
 // ClusterNodeMod - information related to a cluster node instance
 type ClusterNodeMod struct {
 	// Instance - Cluster Instance
-	Addr net.IP `json:"Addr"`
+	Addr   net.IP `json:"Addr"`
+	Egress bool   `json:"egress"`
 }
 
 const (
@@ -774,6 +1060,20 @@ type MirrGetMod struct {
 	Sync DpStatusT
 }
 
+// User - information related to a user
+type User struct {
+	// Username - username of the user
+	Username string `json:"username"`
+	// Password - password of the user
+	Password string `json:"password"`
+	// createdAt - time of creation
+	CreatedAt time.Time `json:"created_at"`
+	//ID - unique identifier for the user
+	ID int `json:"id"`
+	// Role - role of the user
+	Role string `json:"role"`
+}
+
 // NetHookInterface - Go interface which needs to be implemented to talk to loxinet module
 type NetHookInterface interface {
 	NetMirrorGet() ([]MirrGetMod, error)
@@ -819,9 +1119,43 @@ type NetHookInterface interface {
 	NetEpHostAdd(fm *EndPointMod) (int, error)
 	NetEpHostDel(fm *EndPointMod) (int, error)
 	NetEpHostGet() ([]EndPointMod, error)
+	NetEpHostStateSet(fm *EndPointHostMod) (int, error)
 	NetParamSet(param ParamMod) (int, error)
 	NetParamGet(param *ParamMod) (int, error)
+	NetGoBGPNeighGet() ([]GoBGPNeighGetMod, error)
 	NetGoBGPNeighAdd(nm *GoBGPNeighMod) (int, error)
 	NetGoBGPNeighDel(nm *GoBGPNeighMod) (int, error)
+
+	NetGoBGPPolicyDefinedSetGet(string, string) ([]GoBGPPolicyDefinedSetMod, error)
+	NetGoBGPPolicyDefinedSetAdd(nm *GoBGPPolicyDefinedSetMod) (int, error)
+	NetGoBGPPolicyDefinedSetDel(nm *GoBGPPolicyDefinedSetMod) (int, error)
+
+	NetGoBGPPolicyDefinitionsGet() ([]GoBGPPolicyDefinitionsMod, error)
+	NetGoBGPPolicyDefinitionAdd(nm *GoBGPPolicyDefinitionsMod) (int, error)
+	NetGoBGPPolicyDefinitionDel(nm *GoBGPPolicyDefinitionsMod) (int, error)
+
+	NetGoBGPPolicyApplyAdd(nm *GoBGPPolicyApply) (int, error)
+
+	NetGoBGPPolicyApplyDel(nm *GoBGPPolicyApply) (int, error)
 	NetGoBGPGCAdd(gc *GoBGPGlobalConfig) (int, error)
+	NetBFDGet() ([]BFDMod, error)
+	NetBFDAdd(bm *BFDMod) (int, error)
+	NetBFDDel(bm *BFDMod) (int, error)
+
+	NetUserAdd(um *User) (int, error)
+	NetUserGet() ([]User, error)
+	NetUserDel(ID int) error
+	NetUserUpdate(um *User) error
+	NetUserLogin(um *User) (string, bool, error)
+	NetUserLogout(token string) error
+	NetUserValidate(token string) (interface{}, error)
+
+	// OAuth2
+	NetOauthUserTokenStore(userEmail, token, refreshToken string, expiry time.Time) (string, bool, error)
+	NetOauthUserValidate(token string) (interface{}, error)
+	NetOauthValidateAllTokens(token, refreshToken string) (interface{}, error)
+	NetOauthDeleteToken(token string) error
+
+	NetPrometheusEnable() error
+	NetHandlePanic()
 }

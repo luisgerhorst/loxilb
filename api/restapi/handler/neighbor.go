@@ -24,17 +24,20 @@ import (
 	tk "github.com/loxilb-io/loxilib"
 )
 
-func ConfigPostNeighbor(params operations.PostConfigNeighborParams) middleware.Responder {
-	tk.LogIt(tk.LogDebug, "[API] IPv4 Neighbor %s API called. url : %s\n", params.HTTPRequest.Method, params.HTTPRequest.URL)
-	ret := loxinlp.AddNeighNoHook(params.Attr.IPAddress, params.Attr.Dev, params.Attr.MacAddress)
+func ConfigPostNeighbor(params operations.PostConfigNeighborParams, principal interface{}) middleware.Responder {
+	tk.LogIt(tk.LogTrace, "api: IPv4 Neighbor %s API called. url : %s\n", params.HTTPRequest.Method, params.HTTPRequest.URL)
+	if params.Attr.IPAddress == nil || params.Attr.Dev == nil || params.Attr.MacAddress == nil {
+		return &ResultResponse{Result: "fail"}
+	}
+	ret := loxinlp.AddNeighNoHook(*params.Attr.IPAddress, *params.Attr.Dev, *params.Attr.MacAddress)
 	if ret != 0 {
 		return &ResultResponse{Result: "fail"}
 	}
 	return &ResultResponse{Result: "Success"}
 }
 
-func ConfigDeleteNeighbor(params operations.DeleteConfigNeighborIPAddressDevIfNameParams) middleware.Responder {
-	tk.LogIt(tk.LogDebug, "[API] IPv4 Neighbor   %s API called. url : %s\n", params.HTTPRequest.Method, params.HTTPRequest.URL)
+func ConfigDeleteNeighbor(params operations.DeleteConfigNeighborIPAddressDevIfNameParams, principal interface{}) middleware.Responder {
+	tk.LogIt(tk.LogTrace, "api: IPv4 Neighbor   %s API called. url : %s\n", params.HTTPRequest.Method, params.HTTPRequest.URL)
 	ret := loxinlp.DelNeighNoHook(params.IPAddress, params.IfName)
 	if ret != 0 {
 		return &ResultResponse{Result: "fail"}
@@ -42,16 +45,19 @@ func ConfigDeleteNeighbor(params operations.DeleteConfigNeighborIPAddressDevIfNa
 	return &ResultResponse{Result: "Success"}
 }
 
-func ConfigGetNeighbor(params operations.GetConfigNeighborAllParams) middleware.Responder {
-	tk.LogIt(tk.LogDebug, "[API] IPv4 Neighbor  %s API called. url : %s\n", params.HTTPRequest.Method, params.HTTPRequest.URL)
+func ConfigGetNeighbor(params operations.GetConfigNeighborAllParams, principal interface{}) middleware.Responder {
+	tk.LogIt(tk.LogTrace, "api: IPv4 Neighbor  %s API called. url : %s\n", params.HTTPRequest.Method, params.HTTPRequest.URL)
 	res, _ := ApiHooks.NetNeighGet()
 	var result []*models.NeighborEntry
 	result = make([]*models.NeighborEntry, 0)
 	for _, neighbor := range res {
 		var tmpResult models.NeighborEntry
-		tmpResult.MacAddress = neighbor.HardwareAddr.String()
-		tmpResult.IPAddress = neighbor.IP.String()
-		tmpResult.Dev, _ = loxinlp.GetLinkNameByIndex(neighbor.LinkIndex)
+		macStr := neighbor.HardwareAddr.String()
+		tmpResult.MacAddress = &macStr
+		ipStr := neighbor.IP.String()
+		tmpResult.IPAddress = &ipStr
+		devStr, _ := loxinlp.GetLinkNameByIndex(neighbor.LinkIndex)
+		tmpResult.Dev = &devStr
 		result = append(result, &tmpResult)
 	}
 	return operations.NewGetConfigNeighborAllOK().WithPayload(&operations.GetConfigNeighborAllOKBody{NeighborAttr: result})

@@ -23,13 +23,13 @@ import (
 	tk "github.com/loxilb-io/loxilib"
 )
 
-func ConfigGetEndPoint(params operations.GetConfigEndpointAllParams) middleware.Responder {
+func ConfigGetEndPoint(params operations.GetConfigEndpointAllParams, principal interface{}) middleware.Responder {
 	// Get endpoint rules
-	tk.LogIt(tk.LogDebug, "[API] EndPoint %s API called. url : %s\n", params.HTTPRequest.Method, params.HTTPRequest.URL)
+	tk.LogIt(tk.LogTrace, "api: EndPoint %s API called. url : %s\n", params.HTTPRequest.Method, params.HTTPRequest.URL)
 
 	res, err := ApiHooks.NetEpHostGet()
 	if err != nil {
-		tk.LogIt(tk.LogDebug, "[API] Error : %v\n", err)
+		tk.LogIt(tk.LogDebug, "api: Error : %v\n", err)
 		return &ResultResponse{Result: err.Error()}
 	}
 	var result []*models.EndPointGetEntry
@@ -57,11 +57,13 @@ func ConfigGetEndPoint(params operations.GetConfigEndpointAllParams) middleware.
 	return operations.NewGetConfigEndpointAllOK().WithPayload(&operations.GetConfigEndpointAllOKBody{Attr: result})
 }
 
-func ConfigPostEndPoint(params operations.PostConfigEndpointParams) middleware.Responder {
-	tk.LogIt(tk.LogDebug, "[API] EndPoint %s API called. url : %s\n", params.HTTPRequest.Method, params.HTTPRequest.URL)
+func ConfigPostEndPoint(params operations.PostConfigEndpointParams, principal interface{}) middleware.Responder {
+	tk.LogIt(tk.LogTrace, "api: EndPoint %s API called. url : %s\n", params.HTTPRequest.Method, params.HTTPRequest.URL)
 
 	EP := cmn.EndPointMod{}
-	EP.HostName = params.Attr.HostName
+	if params.Attr.HostName != nil {
+		EP.HostName = *params.Attr.HostName
+	}
 	EP.Name = params.Attr.Name
 	EP.ProbeType = params.Attr.ProbeType
 	EP.InActTries = int(params.Attr.InactiveReTries)
@@ -77,8 +79,8 @@ func ConfigPostEndPoint(params operations.PostConfigEndpointParams) middleware.R
 	return &ResultResponse{Result: "Success"}
 }
 
-func ConfigDeleteEndPoint(params operations.DeleteConfigEndpointEpipaddressIPAddressParams) middleware.Responder {
-	tk.LogIt(tk.LogDebug, "[API] EndPoint %s API called. url : %s\n", params.HTTPRequest.Method, params.HTTPRequest.URL)
+func ConfigDeleteEndPoint(params operations.DeleteConfigEndpointEpipaddressIPAddressParams, principal interface{}) middleware.Responder {
+	tk.LogIt(tk.LogTrace, "api: EndPoint %s API called. url : %s\n", params.HTTPRequest.Method, params.HTTPRequest.URL)
 
 	EP := cmn.EndPointMod{}
 	EP.HostName = params.IPAddress
@@ -95,6 +97,22 @@ func ConfigDeleteEndPoint(params operations.DeleteConfigEndpointEpipaddressIPAdd
 		EP.ProbePort = uint16(*params.ProbePort)
 	}
 	_, err := ApiHooks.NetEpHostDel(&EP)
+	if err != nil {
+		return &ResultResponse{Result: err.Error()}
+	}
+	return &ResultResponse{Result: "Success"}
+}
+
+func ConfigPostEndPointHostState(params operations.PostConfigEndpointhoststateParams, principal interface{}) middleware.Responder {
+	tk.LogIt(tk.LogTrace, "api: EndPoint %s API called. url : %s\n", params.HTTPRequest.Method, params.HTTPRequest.URL)
+
+	EPHost := cmn.EndPointHostMod{}
+	EPHost.HostName = params.Attr.HostName
+	EPHost.EPPort = uint16(params.Attr.EpPort)
+	EPHost.EPProto = params.Attr.EpProto
+	EPHost.State = params.Attr.State
+
+	_, err := ApiHooks.NetEpHostStateSet(&EPHost)
 	if err != nil {
 		return &ResultResponse{Result: err.Error()}
 	}

@@ -12,10 +12,23 @@ dexec="sudo docker exec -i "
 hns="sudo ip netns "
 hexist="$vrn$hn"
 lxdocker="ghcr.io/loxilb-io/loxilb:latest"
+hostdocker="ghcr.io/loxilb-io/nettest:latest"
 cluster_opts=""
-var=$(lsb_release -r | cut -f2)
-if [[ $var == *"22.04"* ]];then
-  lxdocker="ghcr.io/loxilb-io/loxilb:latestu22"
+extra_opts=""
+ka_opts=""
+docker_extra_opts=""
+#var=$(lsb_release -r | cut -f2)
+#if [[ $var == *"22.04"* ]];then
+#  lxdocker="ghcr.io/loxilb-io/loxilb:latestu22"
+#fi
+
+
+if [ ! -d loxilb.io ]; then
+  ../common/minica --domains loxilb.io
+  mkdir cert
+  cp minica.pem cert/rootCA.crt
+  cp loxilb.io/cert.pem cert/server.crt
+  cp loxilb.io/key.pem cert/server.key
 fi
 
 loxilbs=()
@@ -31,11 +44,9 @@ pull_dockers() {
   ## loxilb docker
   docker pull $lxdocker
   ## Host docker 
-  docker pull eyes852/ubuntu-iperf-test:0.5
+  docker pull docker pull $hostdocker
   ## BGP host docker
   docker pull ewindisch/quagga
-  ## Keepalive docker
-  docker pull osixia/keepalived:2.0.20
 }
 
 ## Creates a docker host
@@ -76,7 +87,7 @@ spawn_docker_host() {
       fi
       shift 2
       ;;
-    -d | --ka-config )
+    -n | --ka-config )
       kpath="$2"
       if [[ -z ${ka+x} ]]; then
         ka="in"
@@ -85,6 +96,14 @@ spawn_docker_host() {
       ;;
     -s | --cpuset-cpus )
       cpuset_cpus_arg="--cpuset-cpus $2"
+      shift 2
+      ;;
+    -e | --extra-args)
+      extra_opts="$2"
+      shift 2
+      ;;
+    -x | --docker-args)
+      docker_extra_opts="$2"
       shift 2
       ;;
     -*|--*)
@@ -111,27 +130,33 @@ spawn_docker_host() {
     fi
     if [[ ! -z ${ka+x} ]]; then
       sudo mkdir -p /etc/shared/$dname/
-      if [[ "$ka" == "in" ]];then
-        ka_opts="-k in"
-        if [[ ! -z "$kpath" ]]; then
-            ka_conf="-v $kpath:/etc/keepalived/" 
-        fi
-      fi
-      $docker_run --privileged -dt --entrypoint /bin/bash $bgp_conf -v /dev/log:/dev/log -v /etc/shared/$dname:/etc/shared $loxilb_config $ka_conf --name $dname $lxdocker
+      #   if [[ "$ka" == "in" ]];then
+      #     ka_opts="-k in"
+      #     if [[ ! -z "$kpath" ]]; then
+      #         ka_conf="-v $kpath:/etc/keepalived/"
+      #     fi
+      #   fi
+      #   $docker_run --privileged -dt --entrypoint /bin/bash $bgp_conf -v /dev/log:/dev/log -v /etc/shared/$dname:/etc/shared $loxilb_config $ka_conf --name $dname $lxdocker
+      #   get_llb_peerIP $dname
+      #   $docker_exec_lb $bgp_opts $cluster_opts $ka_opts
+
+      #   if [[ "$ka" == "out" ]];then
+      #     ka_opts="-k out"
+      #     if [[ ! -z "$kpath" ]]; then
+      #         ka_conf="-v $kpath:/container/service/keepalived/assets/"
+      #     fi
+
+      #     $docker_run --privileged -dit --network=container:$dname $ka_conf -v /etc/shared/$dname:/etc/shared --name ka_$dname osixia/keepalived:2.0.20
+      #   fi
+      # else
+      #   $docker_run --privileged -dt --entrypoint /bin/bash $bgp_conf -v /dev/log:/dev/log $loxilb_config --name $dname $lxdocker $bgp_opts
+      #   $docker_exec_lb $bgp_opts $cluster_opts
+      docker run -u root --cap-add SYS_ADMIN   --restart unless-stopped --privileged -dt $docker_extra_opts --entrypoint /bin/bash $bgp_conf -v /dev/log:/dev/log -v /etc/shared/$dname:/etc/shared $loxilb_config --name $dname $lxdocker
       get_llb_peerIP $dname
-      $docker_exec_lb $bgp_opts $cluster_opts $ka_opts
-
-      if [[ "$ka" == "out" ]];then
-        ka_opts="-k out"
-        if [[ ! -z "$kpath" ]]; then
-            ka_conf="-v $kpath:/container/service/keepalived/assets/" 
-        fi
-
-        $docker_run --privileged -dit --network=container:$dname $ka_conf -v /etc/shared/$dname:/etc/shared --name ka_$dname osixia/keepalived:2.0.20
-      fi
+      docker exec -dt $dname /root/loxilb-io/loxilb/loxilb $bgp_opts $cluster_opts $ka_opts $extra_opts
     else
-      $docker_run --privileged -dt --entrypoint /bin/bash $bgp_conf -v /dev/log:/dev/log $loxilb_config --name $dname $lxdocker $bgp_opts
-      $docker_exec_lb $bgp_opts $cluster_opts
+      docker run -u root --cap-add SYS_ADMIN   --restart unless-stopped --privileged -dt $docker_extra_opts --entrypoint /bin/bash $bgp_conf -v /dev/log:/dev/log -v `pwd`/cert:/opt/loxilb/cert/ $loxilb_config --name $dname $lxdocker $bgp_opts
+      docker exec -dt $dname /root/loxilb-io/loxilb/loxilb $bgp_opts $cluster_opts $extra_opts
     fi
   elif [[ "$dtype" == "host" ]]; then
     if [[ ! -z "$bpath" ]]; then
@@ -140,8 +165,10 @@ spawn_docker_host() {
     if [[ "$bgp" == "yes" || ! -z "$bpath" ]]; then
       $docker_run --privileged -dit $bgp_conf --name $dname ewindisch/quagga
     else
-      docker run -u root --cap-add SYS_ADMIN $cpuset_cpus_arg -dit --name $dname eyes852/ubuntu-iperf-test:0.5
+      docker run -u root --cap-add SYS_ADMIN $cpuset_cpus_arg -dit --name $dname $hostdocker
     fi
+  elif [[ "$dtype" == "seahost" ]]; then
+      docker run -u root --cap-add SYS_ADMIN -i -t --rm --detach --entrypoint /bin/bash --name $dname  ghcr.io/loxilb-io/seagull:ubuntu1804
   fi
 
   pid=""
@@ -156,10 +183,12 @@ spawn_docker_host() {
     sudo mount -o bind /proc/$pid/ns/net /var/run/netns/$dname
   fi
 
-  $hexec $dname ifconfig lo up
+  $hexec $dname ip link set lo up
   $hexec $dname sysctl net.ipv6.conf.all.disable_ipv6=1 2>&1 >> /dev/null
   #$hexec $dname sysctl net.ipv4.conf.all.arp_accept=1 2>&1 >> /dev/null
-  $hexec $dname sysctl net.ipv4.conf.eth0.arp_ignore=2 2>&1 >> /dev/null
+  if [ -f /proc/sys/net/ipv4/conf/eth0/arp_ignore ]; then
+    $hexec $dname sysctl net.ipv4.conf.eth0.arp_ignore=2 2>&1 >> /dev/null
+  fi
 }
 
 ## Get loxilb peer docker IP
@@ -173,6 +202,7 @@ get_llb_peerIP() {
         llb2IP="$A.$B.$C.$((D+1))"
       fi
       cluster_opts=" --cluster=$llb2IP --self=0"
+      ka_opts=" --ka=$llb2IP:$llb1IP"
     elif [[ "$1" == "llb2" ]]; then
       llb2IP=$(docker inspect --format='{{.NetworkSettings.IPAddress}}' llb2)
       if [[ "lb$llb2IP" == "lb" ]];then
@@ -182,19 +212,24 @@ get_llb_peerIP() {
         llb1IP="$A.$B.$C.$((D-1))"
       fi
       cluster_opts=" --cluster=$llb1IP --self=1"
+      ka_opts=" --ka=$llb1IP:$llb2IP"
     fi
 }
 
 ## Deletes a docker host
 ## arg1 - hostname 
 delete_docker_host() {
-  if docker stop $1 2>&1 >> /dev/null
+  dcmd="kill"
+  if [[ $1 == "llb"* ]] || [[ $1 == "loxilb"* ]]; then
+    dcmd="stop"
+  fi
+  if docker $dcmd $1 2>&1 >> /dev/null
   then
     hd="true"
     ka=`docker ps -f name=ka_$1| grep -w ka_$1 | cut  -d " "  -f 1 | grep -iv  "CONTAINER"`
     loxilbs=( "${loxilbs[@]/$1}" )
     if [ "$ka" != "" ]; then
-      docker stop ka_$1 2>&1 >> /dev/null
+      docker kill ka_$1 2>&1 >> /dev/null
       docker rm ka_$1 2>&1 >> /dev/null
     fi
   fi
@@ -484,10 +519,10 @@ create_docker_host_vxlan() {
   #echo "$h1:$link1->$h2:$link2"
 
   if [[ "$uifType" == "phy" ]]; then
-    sudo ip -n $h1 link add vxlan$vxid type vxlan id $vxid local $lip dev $link1 dstport 4789
+    sudo ip -n $h1 link add vxlan$vxid type vxlan id $vxid local $lip dev $link1 dstport 0
     sudo ip -n $h1 link set vxlan$vxid up
   elif [[ "$uifType" == "vlan" ]]; then
-    sudo ip -n $h1 link add vxlan$vxid type vxlan id $vxid local $lip dev vlan$vid dstport 4789
+    sudo ip -n $h1 link add vxlan$vxid type vxlan id $vxid local $lip dev vlan$vid dstport 0
     sudo ip -n $h1 link set vxlan$vxid up
   fi
 
@@ -559,8 +594,12 @@ function create_lb_rule() {
   echo "$1: loxicmd create lb ${args[*]}"
   $dexec $1 loxicmd create lb ${args[*]}
 
-  hook=$($dexec llb1 ntc filter show dev eth0 ingress | grep tc_packet_hook)
-  if [[ $hook != *"tc_packet_hook"* ]]; then
+  if [[ ${args[*]} == *"--mode=fullproxy"* ]]; then
+    return
+  fi
+
+  hook=$($dexec $1 tc filter show dev eth0 ingress | grep tc_packet_func)
+  if [[ $hook != *"tc_packet_func"* ]]; then
     echo "ERROR : No hook point found";
     exit 1
   fi

@@ -27,12 +27,14 @@ import (
 	"github.com/go-openapi/runtime/middleware"
 )
 
-func ConfigPostSession(params operations.PostConfigSessionParams) middleware.Responder {
-	tk.LogIt(tk.LogDebug, "[API] Session %s API called. url : %s\n", params.HTTPRequest.Method, params.HTTPRequest.URL)
+func ConfigPostSession(params operations.PostConfigSessionParams, principal interface{}) middleware.Responder {
+	tk.LogIt(tk.LogTrace, "api: Session %s API called. url : %s\n", params.HTTPRequest.Method, params.HTTPRequest.URL)
 
 	var sessionMod cmn.SessionMod
 	// Default Setting
-	sessionMod.Ident = params.Attr.Ident
+	if params.Attr.Ident != nil {
+		sessionMod.Ident = *params.Attr.Ident
+	}
 	sessionMod.IP = net.ParseIP(params.Attr.SessionIP)
 	// AnTun Setting
 	sessionMod.AnTun.TeID = uint32(params.Attr.AccessNetworkTunnel.TeID)
@@ -41,51 +43,54 @@ func ConfigPostSession(params operations.PostConfigSessionParams) middleware.Res
 	sessionMod.CnTun.TeID = uint32(params.Attr.CoreNetworkTunnel.TeID)
 	sessionMod.CnTun.Addr = net.ParseIP(params.Attr.CoreNetworkTunnel.TunnelIP)
 
-	tk.LogIt(tk.LogDebug, "[API] Session sessionMod : %v\n", sessionMod)
+	tk.LogIt(tk.LogDebug, "api: Session sessionMod : %v\n", sessionMod)
 	_, err := ApiHooks.NetSessionAdd(&sessionMod)
 	if err != nil {
-		tk.LogIt(tk.LogDebug, "[API] Error occur : %v\n", err)
+		tk.LogIt(tk.LogDebug, "api: Error occur : %v\n", err)
 		return &ResultResponse{Result: err.Error()}
 	}
 	return &ResultResponse{Result: "Success"}
 }
 
-func ConfigDeleteSession(params operations.DeleteConfigSessionIdentIdentParams) middleware.Responder {
-	tk.LogIt(tk.LogDebug, "[API] Session %s API called. url : %s\n", params.HTTPRequest.Method, params.HTTPRequest.URL)
+func ConfigDeleteSession(params operations.DeleteConfigSessionIdentIdentParams, principal interface{}) middleware.Responder {
+	tk.LogIt(tk.LogTrace, "api: Session %s API called. url : %s\n", params.HTTPRequest.Method, params.HTTPRequest.URL)
 
 	var sessionMod cmn.SessionMod
 	// Default Setting
 	sessionMod.Ident = params.Ident
-	tk.LogIt(tk.LogDebug, "[API] Session sessionMod : %v\n", sessionMod)
+	tk.LogIt(tk.LogDebug, "api: Session sessionMod : %v\n", sessionMod)
 	_, err := ApiHooks.NetSessionDel(&sessionMod)
 	if err != nil {
-		tk.LogIt(tk.LogDebug, "[API] Error occur : %v\n", err)
+		tk.LogIt(tk.LogDebug, "api: Error occur : %v\n", err)
 		return &ResultResponse{Result: err.Error()}
 	}
 	return &ResultResponse{Result: "Success"}
 }
 
-func ConfigPostSessionUlCl(params operations.PostConfigSessionulclParams) middleware.Responder {
-	tk.LogIt(tk.LogDebug, "[API] Session UlCl %s API called. url : %s\n", params.HTTPRequest.Method, params.HTTPRequest.URL)
+func ConfigPostSessionUlCl(params operations.PostConfigSessionulclParams, principal interface{}) middleware.Responder {
+	tk.LogIt(tk.LogTrace, "api: Session UlCl %s API called. url : %s\n", params.HTTPRequest.Method, params.HTTPRequest.URL)
 
 	var sessionulclMod cmn.SessionUlClMod
 	// Default Setting
-	sessionulclMod.Ident = params.Attr.UlclIdent
+
+	if params.Attr.UlclIdent != nil {
+		sessionulclMod.Ident = *params.Attr.UlclIdent
+	}
 	// UlCl Argument setting
 	sessionulclMod.Args.Addr = net.ParseIP(params.Attr.UlclArgument.UlclIP)
 	sessionulclMod.Args.Qfi = uint8(params.Attr.UlclArgument.Qfi)
 
-	tk.LogIt(tk.LogDebug, "[API] Session sessionMod : %v\n", sessionulclMod)
+	tk.LogIt(tk.LogDebug, "api: Session sessionMod : %v\n", sessionulclMod)
 	_, err := ApiHooks.NetSessionUlClAdd(&sessionulclMod)
 	if err != nil {
-		tk.LogIt(tk.LogDebug, "[API] Error occur : %v\n", err)
+		tk.LogIt(tk.LogDebug, "api: Error occur : %v\n", err)
 		return &ResultResponse{Result: err.Error()}
 	}
 	return &ResultResponse{Result: "Success"}
 }
 
-func ConfigDeleteSessionUlCl(params operations.DeleteConfigSessionulclIdentIdentUlclAddressIPAddressParams) middleware.Responder {
-	tk.LogIt(tk.LogDebug, "[API] Session UlCl %s API called. url : %s\n", params.HTTPRequest.Method, params.HTTPRequest.URL)
+func ConfigDeleteSessionUlCl(params operations.DeleteConfigSessionulclIdentIdentUlclAddressIPAddressParams, principal interface{}) middleware.Responder {
+	tk.LogIt(tk.LogTrace, "api: Session UlCl %s API called. url : %s\n", params.HTTPRequest.Method, params.HTTPRequest.URL)
 
 	var sessionulclMod cmn.SessionUlClMod
 
@@ -94,22 +99,22 @@ func ConfigDeleteSessionUlCl(params operations.DeleteConfigSessionulclIdentIdent
 	// UlCl Argument setting
 	sessionulclMod.Args.Addr = net.ParseIP(params.IPAddress)
 
-	tk.LogIt(tk.LogDebug, "[API] Session sessionMod : %v\n", sessionulclMod)
+	tk.LogIt(tk.LogDebug, "api: Session sessionMod : %v\n", sessionulclMod)
 	_, err := ApiHooks.NetSessionUlClDel(&sessionulclMod)
 	if err != nil {
-		tk.LogIt(tk.LogDebug, "[API] Error occur : %v\n", err)
+		tk.LogIt(tk.LogDebug, "api: Error occur : %v\n", err)
 		return &ResultResponse{Result: err.Error()}
 	}
 	return &ResultResponse{Result: "Success"}
 }
 
-func ConfigGetSession(params operations.GetConfigSessionAllParams) middleware.Responder {
+func ConfigGetSession(params operations.GetConfigSessionAllParams, principal interface{}) middleware.Responder {
 	// Get Session rules
-	tk.LogIt(tk.LogDebug, "[API] Session %s API called. url : %s\n", params.HTTPRequest.Method, params.HTTPRequest.URL)
+	tk.LogIt(tk.LogTrace, "api: Session %s API called. url : %s\n", params.HTTPRequest.Method, params.HTTPRequest.URL)
 
 	res, err := ApiHooks.NetSessionGet()
 	if err != nil {
-		tk.LogIt(tk.LogDebug, "[API] Error occur : %v\n", err)
+		tk.LogIt(tk.LogDebug, "api: Error occur : %v\n", err)
 		return &ResultResponse{Result: err.Error()}
 	}
 	var result []*models.SessionEntry
@@ -120,7 +125,7 @@ func ConfigGetSession(params operations.GetConfigSessionAllParams) middleware.Re
 		var tmpCnTun models.SessionEntryCoreNetworkTunnel
 
 		// Session Common match
-		tmpSes.Ident = session.Ident
+		tmpSes.Ident = &session.Ident
 		tmpSes.SessionIP = session.IP.String()
 
 		// Session ANtunnel match
@@ -140,13 +145,13 @@ func ConfigGetSession(params operations.GetConfigSessionAllParams) middleware.Re
 	return operations.NewGetConfigSessionAllOK().WithPayload(&operations.GetConfigSessionAllOKBody{SessionAttr: result})
 }
 
-func ConfigGetSessionUlCl(params operations.GetConfigSessionulclAllParams) middleware.Responder {
+func ConfigGetSessionUlCl(params operations.GetConfigSessionulclAllParams, principal interface{}) middleware.Responder {
 	// Get Ulcl rules
-	tk.LogIt(tk.LogDebug, "[API] Session UlCl %s API called. url : %s\n", params.HTTPRequest.Method, params.HTTPRequest.URL)
+	tk.LogIt(tk.LogTrace, "api: Session UlCl %s API called. url : %s\n", params.HTTPRequest.Method, params.HTTPRequest.URL)
 
 	res, err := ApiHooks.NetSessionUlClGet()
 	if err != nil {
-		tk.LogIt(tk.LogDebug, "[API] Error occur : %v\n", err)
+		tk.LogIt(tk.LogDebug, "api: Error occur : %v\n", err)
 		return &ResultResponse{Result: err.Error()}
 	}
 	var result []*models.SessionUlClEntry
@@ -156,7 +161,7 @@ func ConfigGetSessionUlCl(params operations.GetConfigSessionulclAllParams) middl
 		var tmpulclArg models.SessionUlClEntryUlclArgument
 
 		// UlCl ID match
-		tmpulcl.UlclIdent = ulcl.Ident
+		tmpulcl.UlclIdent = &ulcl.Ident
 
 		// UlCl Args match
 		tmpulclArg.UlclIP = ulcl.Args.Addr.String()

@@ -7,10 +7,12 @@ package models
 
 import (
 	"context"
+	"encoding/json"
 
 	"github.com/go-openapi/errors"
 	"github.com/go-openapi/strfmt"
 	"github.com/go-openapi/swag"
+	"github.com/go-openapi/validate"
 )
 
 // PolicyEntry policy entry
@@ -19,18 +21,24 @@ import (
 type PolicyEntry struct {
 
 	// Policy name
-	PolicyIdent string `json:"policyIdent,omitempty"`
+	// Required: true
+	PolicyIdent *string `json:"policyIdent"`
 
 	// policy info
 	PolicyInfo *PolicyEntryPolicyInfo `json:"policyInfo,omitempty"`
 
 	// target object
-	TargetObject *PolicyEntryTargetObject `json:"targetObject,omitempty"`
+	// Required: true
+	TargetObject *PolicyEntryTargetObject `json:"targetObject"`
 }
 
 // Validate validates this policy entry
 func (m *PolicyEntry) Validate(formats strfmt.Registry) error {
 	var res []error
+
+	if err := m.validatePolicyIdent(formats); err != nil {
+		res = append(res, err)
+	}
 
 	if err := m.validatePolicyInfo(formats); err != nil {
 		res = append(res, err)
@@ -43,6 +51,15 @@ func (m *PolicyEntry) Validate(formats strfmt.Registry) error {
 	if len(res) > 0 {
 		return errors.CompositeValidationError(res...)
 	}
+	return nil
+}
+
+func (m *PolicyEntry) validatePolicyIdent(formats strfmt.Registry) error {
+
+	if err := validate.Required("policyIdent", "body", m.PolicyIdent); err != nil {
+		return err
+	}
+
 	return nil
 }
 
@@ -66,8 +83,9 @@ func (m *PolicyEntry) validatePolicyInfo(formats strfmt.Registry) error {
 }
 
 func (m *PolicyEntry) validateTargetObject(formats strfmt.Registry) error {
-	if swag.IsZero(m.TargetObject) { // not required
-		return nil
+
+	if err := validate.Required("targetObject", "body", m.TargetObject); err != nil {
+		return err
 	}
 
 	if m.TargetObject != nil {
@@ -172,12 +190,55 @@ type PolicyEntryPolicyInfo struct {
 	// policy type
 	PeakInfoRate int64 `json:"peakInfoRate,omitempty"`
 
-	// policy type
+	// policy type(0-TrTCM, 1-SrTCM)
+	// Enum: [0 1]
 	Type int64 `json:"type,omitempty"`
 }
 
 // Validate validates this policy entry policy info
 func (m *PolicyEntryPolicyInfo) Validate(formats strfmt.Registry) error {
+	var res []error
+
+	if err := m.validateType(formats); err != nil {
+		res = append(res, err)
+	}
+
+	if len(res) > 0 {
+		return errors.CompositeValidationError(res...)
+	}
+	return nil
+}
+
+var policyEntryPolicyInfoTypeTypePropEnum []interface{}
+
+func init() {
+	var res []int64
+	if err := json.Unmarshal([]byte(`[0,1]`), &res); err != nil {
+		panic(err)
+	}
+	for _, v := range res {
+		policyEntryPolicyInfoTypeTypePropEnum = append(policyEntryPolicyInfoTypeTypePropEnum, v)
+	}
+}
+
+// prop value enum
+func (m *PolicyEntryPolicyInfo) validateTypeEnum(path, location string, value int64) error {
+	if err := validate.EnumCase(path, location, value, policyEntryPolicyInfoTypeTypePropEnum, true); err != nil {
+		return err
+	}
+	return nil
+}
+
+func (m *PolicyEntryPolicyInfo) validateType(formats strfmt.Registry) error {
+	if swag.IsZero(m.Type) { // not required
+		return nil
+	}
+
+	// value enum
+	if err := m.validateTypeEnum("policyInfo"+"."+"type", "body", m.Type); err != nil {
+		return err
+	}
+
 	return nil
 }
 
@@ -210,14 +271,47 @@ func (m *PolicyEntryPolicyInfo) UnmarshalBinary(b []byte) error {
 type PolicyEntryTargetObject struct {
 
 	// Target Attachment
-	Attachment int64 `json:"attachment,omitempty"`
+	// Required: true
+	Attachment *int64 `json:"attachment"`
 
 	// Target Names
-	PolObjName string `json:"polObjName,omitempty"`
+	// Required: true
+	PolObjName *string `json:"polObjName"`
 }
 
 // Validate validates this policy entry target object
 func (m *PolicyEntryTargetObject) Validate(formats strfmt.Registry) error {
+	var res []error
+
+	if err := m.validateAttachment(formats); err != nil {
+		res = append(res, err)
+	}
+
+	if err := m.validatePolObjName(formats); err != nil {
+		res = append(res, err)
+	}
+
+	if len(res) > 0 {
+		return errors.CompositeValidationError(res...)
+	}
+	return nil
+}
+
+func (m *PolicyEntryTargetObject) validateAttachment(formats strfmt.Registry) error {
+
+	if err := validate.Required("targetObject"+"."+"attachment", "body", m.Attachment); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (m *PolicyEntryTargetObject) validatePolObjName(formats strfmt.Registry) error {
+
+	if err := validate.Required("targetObject"+"."+"polObjName", "body", m.PolObjName); err != nil {
+		return err
+	}
+
 	return nil
 }
 

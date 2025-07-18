@@ -25,8 +25,8 @@ import (
 	tk "github.com/loxilb-io/loxilib"
 )
 
-func ConfigPostFW(params operations.PostConfigFirewallParams) middleware.Responder {
-	tk.LogIt(tk.LogDebug, "[API] Firewall %s API callded. url : %s\n", params.HTTPRequest.Method, params.HTTPRequest.URL)
+func ConfigPostFW(params operations.PostConfigFirewallParams, principal interface{}) middleware.Responder {
+	tk.LogIt(tk.LogTrace, "api: Firewall %s API called by IP: %s. url : %s\n", params.HTTPRequest.Method, params.HTTPRequest.RemoteAddr, params.HTTPRequest.URL)
 	Opts := cmn.FwOptArg{}
 	Rules := cmn.FwRuleArg{}
 	FW := cmn.FwRuleMod{}
@@ -35,18 +35,34 @@ func ConfigPostFW(params operations.PostConfigFirewallParams) middleware.Respond
 	Rules.DstPortMax = uint16(params.Attr.RuleArguments.MaxDestinationPort)
 	Rules.DstPortMin = uint16(params.Attr.RuleArguments.MinDestinationPort)
 	Rules.InPort = params.Attr.RuleArguments.PortName
-	Rules.Pref = uint16(params.Attr.RuleArguments.Preference)
+	Rules.Pref = uint32(params.Attr.RuleArguments.Preference)
 	Rules.Proto = uint8(params.Attr.RuleArguments.Protocol)
 	Rules.SrcIP = params.Attr.RuleArguments.SourceIP
 	Rules.SrcPortMax = uint16(params.Attr.RuleArguments.MaxSourcePort)
 	Rules.SrcPortMin = uint16(params.Attr.RuleArguments.MinSourcePort)
 
 	if Rules.DstIP == "" {
-		Rules.DstIP = "0.0.0.0/0"
+		if Rules.SrcIP == "" {
+			Rules.DstIP = "0.0.0.0/0"
+		} else {
+			if tk.IsNetIPv4(Rules.SrcIP) {
+				Rules.DstIP = "0.0.0.0/0"
+			} else {
+				Rules.DstIP = "::/0"
+			}
+		}
 	}
 
 	if Rules.SrcIP == "" {
-		Rules.SrcIP = "0.0.0.0/0"
+		if Rules.DstIP == "" {
+			Rules.SrcIP = "0.0.0.0/0"
+		} else {
+			if tk.IsNetIPv4(Rules.DstIP) {
+				Rules.SrcIP = "0.0.0.0/0"
+			} else {
+				Rules.SrcIP = "::/0"
+			}
+		}
 	}
 	// opts
 	Opts.Allow = params.Attr.Opts.Allow
@@ -56,9 +72,22 @@ func ConfigPostFW(params operations.PostConfigFirewallParams) middleware.Respond
 	Opts.Trap = params.Attr.Opts.Trap
 	Opts.Record = params.Attr.Opts.Record
 	Opts.Mark = uint32(params.Attr.Opts.FwMark)
+	Opts.DoSnat = params.Attr.Opts.DoSnat
+	Opts.ToIP = params.Attr.Opts.ToIP
+	Opts.ToPort = uint16(params.Attr.Opts.ToPort)
+	Opts.OnDefault = params.Attr.Opts.OnDefault
 
 	FW.Rule = Rules
 	FW.Opts = Opts
+
+	if Opts.Allow {
+		tk.LogIt(tk.LogInfo, "[FW] Allowed traffic: SrcIP: %s, DstIP: %s, Protocol: %d, SrcPortMin: %d, SrcPortMax: %d, DstPortMin: %d, DstPortMax: %d, Preference: %d, InPort: %s\n",
+			Rules.SrcIP, Rules.DstIP, Rules.Proto, Rules.SrcPortMin, Rules.SrcPortMax, Rules.DstPortMin, Rules.DstPortMax, Rules.Pref, Rules.InPort)
+	} else if Opts.Drop {
+		tk.LogIt(tk.LogInfo, "[FW] Dropped traffic: SrcIP: %s, DstIP: %s, Protocol: %d, SrcPortMin: %d, SrcPortMax: %d, DstPortMin: %d, DstPortMax: %d, Preference: %d, InPort: %s\n",
+			Rules.SrcIP, Rules.DstIP, Rules.Proto, Rules.SrcPortMin, Rules.SrcPortMax, Rules.DstPortMin, Rules.DstPortMax, Rules.Pref, Rules.InPort)
+	}
+
 	fmt.Printf("FW: %v\n", FW)
 	_, err := ApiHooks.NetFwRuleAdd(&FW)
 	if err != nil {
@@ -67,8 +96,8 @@ func ConfigPostFW(params operations.PostConfigFirewallParams) middleware.Respond
 	return &ResultResponse{Result: "Success"}
 }
 
-func ConfigDeleteFW(params operations.DeleteConfigFirewallParams) middleware.Responder {
-	tk.LogIt(tk.LogDebug, "[API] Firewall %s API callded. url : %s\n", params.HTTPRequest.Method, params.HTTPRequest.URL)
+func ConfigDeleteFW(params operations.DeleteConfigFirewallParams, principal interface{}) middleware.Responder {
+	tk.LogIt(tk.LogTrace, "api: Firewall %s API called by IP: %s. url : %s\n", params.HTTPRequest.Method, params.HTTPRequest.RemoteAddr, params.HTTPRequest.URL)
 
 	Rules := cmn.FwRuleArg{}
 	FW := cmn.FwRuleMod{}
@@ -90,7 +119,7 @@ func ConfigDeleteFW(params operations.DeleteConfigFirewallParams) middleware.Res
 		Rules.InPort = *params.PortName
 	}
 	if params.Preference != nil {
-		Rules.Pref = uint16(*params.Preference)
+		Rules.Pref = uint32(*params.Preference)
 	}
 	if params.Protocol != nil {
 		Rules.Proto = uint8(*params.Protocol)
@@ -100,11 +129,27 @@ func ConfigDeleteFW(params operations.DeleteConfigFirewallParams) middleware.Res
 	}
 
 	if Rules.DstIP == "" {
-		Rules.DstIP = "0.0.0.0/0"
+		if Rules.SrcIP == "" {
+			Rules.DstIP = "0.0.0.0/0"
+		} else {
+			if tk.IsNetIPv4(Rules.SrcIP) {
+				Rules.DstIP = "0.0.0.0/0"
+			} else {
+				Rules.DstIP = "::/0"
+			}
+		}
 	}
 
 	if Rules.SrcIP == "" {
-		Rules.SrcIP = "0.0.0.0/0"
+		if Rules.DstIP == "" {
+			Rules.SrcIP = "0.0.0.0/0"
+		} else {
+			if tk.IsNetIPv4(Rules.DstIP) {
+				Rules.SrcIP = "0.0.0.0/0"
+			} else {
+				Rules.SrcIP = "::/0"
+			}
+		}
 	}
 
 	if params.MinSourcePort != nil {
@@ -125,11 +170,14 @@ func ConfigDeleteFW(params operations.DeleteConfigFirewallParams) middleware.Res
 		return &ResultResponse{Result: "fail"}
 	}
 
+	tk.LogIt(tk.LogInfo, "[FW] Deleted traffic rule: SrcIP: %s, DstIP: %s, Protocol: %d, SrcPortMin: %d, SrcPortMax: %d, DstPortMin: %d, DstPortMax: %d, Preference: %d, InPort: %s\n",
+		Rules.SrcIP, Rules.DstIP, Rules.Proto, Rules.SrcPortMin, Rules.SrcPortMax, Rules.DstPortMin, Rules.DstPortMax, Rules.Pref, Rules.InPort)
+
 	return &ResultResponse{Result: "Success"}
 }
 
-func ConfigGetFW(params operations.GetConfigFirewallAllParams) middleware.Responder {
-	tk.LogIt(tk.LogDebug, "[API] Firewall %s API callded. url : %s\n", params.HTTPRequest.Method, params.HTTPRequest.URL)
+func ConfigGetFW(params operations.GetConfigFirewallAllParams, principal interface{}) middleware.Responder {
+	tk.LogIt(tk.LogTrace, "api: Firewall %s API called by IP: %s. url : %s\n", params.HTTPRequest.Method, params.HTTPRequest.RemoteAddr, params.HTTPRequest.URL)
 	res, _ := ApiHooks.NetFwRuleGet()
 	var result []*models.FirewallEntry
 	result = make([]*models.FirewallEntry, 0)
@@ -137,6 +185,11 @@ func ConfigGetFW(params operations.GetConfigFirewallAllParams) middleware.Respon
 		var tmpResult models.FirewallEntry
 		var tmpRule models.FirewallRuleEntry
 		var tmpOpts models.FirewallOptionEntry
+
+		if FW.Opts.Mark&0x40000000 != 0 {
+			continue
+		}
+
 		// Rule
 		tmpRule.DestinationIP = FW.Rule.DstIP
 		tmpRule.MaxDestinationPort = int64(FW.Rule.DstPortMax)
@@ -156,7 +209,11 @@ func ConfigGetFW(params operations.GetConfigFirewallAllParams) middleware.Respon
 		tmpOpts.Trap = FW.Opts.Trap
 		tmpOpts.Record = FW.Opts.Record
 		tmpOpts.FwMark = int64(FW.Opts.Mark)
-
+		tmpOpts.DoSnat = FW.Opts.DoSnat
+		tmpOpts.ToIP = FW.Opts.ToIP
+		tmpOpts.ToPort = int64(FW.Opts.ToPort)
+		tmpOpts.OnDefault = FW.Opts.OnDefault
+		tmpOpts.Counter = FW.Opts.Counter
 		tmpResult.RuleArguments = &tmpRule
 		tmpResult.Opts = &tmpOpts
 

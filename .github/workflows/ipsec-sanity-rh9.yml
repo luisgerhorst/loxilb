@@ -1,0 +1,60 @@
+name: IPsec-Sanity-CI-RH9
+
+on:
+  schedule:
+  # Runs "At 19:00 UTC every day-of-week"
+  - cron: '0 19 * * *'
+  workflow_dispatch:
+    inputs:
+      logLevel:
+        description: 'Log level'
+        required: true
+        default: 'warning'
+      tags:
+        description: 'IPSEC LB Sanity RedHat9'
+       
+jobs:
+  build:
+    name: ipsec-sanity-rh9
+    runs-on: [self-hosted, redhat]
+    if: github.repository == 'loxilb-io/loxilb'
+          &&  github.event.inputs.tagName == ''
+    steps:
+      - uses: actions/checkout@v2
+        with:
+          submodules: recursive
+      - run: |
+             cd cicd/ipsec1/
+             ./config.sh
+             ./validation.sh
+             ./rmconfig.sh
+             cd -
+      - run: |
+             cd cicd/ipsec2/
+             ./config.sh
+             ./validation.sh
+             ./rmconfig.sh
+             cd -
+      - run: |
+             cd cicd/ipsec3/
+             ./config.sh
+             ./validation.sh
+             ./rmconfig.sh
+             cd -
+      - run: |
+             cd cicd/ipsec-e2e/
+             ./config.sh
+             ./validation.sh
+             ./rmconfig.sh
+             cd -
+      - run: echo ${{ github.event.inputs.userInput }}
+      - name: Clean test-bed
+        if: success() || failure()
+        run: |
+            sudo ip -all netns delete
+            dps=$(sudo docker ps -a -q)
+            if [[ x$dps != x ]]; then
+              sudo docker stop $(sudo docker ps -a -q)
+              sudo docker rm $(sudo docker ps -a -q)
+            fi
+            sudo docker image rm ghcr.io/loxilb-io/loxilb:latest

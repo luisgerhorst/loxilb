@@ -1,0 +1,71 @@
+name: Adv-LB-Sanity-CI-RH9
+
+on:
+  schedule:
+  # Runs "At 15:00 UTC every day-of-week"
+  - cron: '0 15 * * *'
+  workflow_dispatch:
+    inputs:
+      logLevel:
+        description: 'Log level'
+        required: true
+        default: 'warning'
+      tags:
+        description: 'Advanced LB Sanity RedHat9'
+       
+jobs:
+  build:
+    name: advanced-lb-sanity-rh9
+    runs-on: [self-hosted, redhat]
+    if: github.repository == 'loxilb-io/loxilb'
+          &&  github.event.inputs.tagName == ''
+    steps:
+      - uses: actions/checkout@v2
+        with:
+          submodules: recursive
+      - run: |
+             cd cicd/k8slbsim/
+             ./config.sh
+             ./validation.sh
+             ./rmconfig.sh
+             cd -
+      - run: |
+             cd cicd/tcptunlb/
+             ./config.sh
+             ./validation.sh
+             ./rmconfig.sh
+             cd -
+      - run: |
+             cd cicd/sctptunlb/
+             ./config.sh
+             ./validation.sh
+             ./rmconfig.sh
+             cd -
+      - run: |
+             cd cicd/wrrtcplb1/
+             ./config.sh
+             ./validation.sh
+             ./rmconfig.sh
+             cd -
+      - run: |
+             cd cicd/wrrtcplb2/
+             ./config.sh
+             ./validation.sh
+             ./rmconfig.sh
+             cd -
+      - run: |
+             cd cicd/nat64tcp/
+             ./config.sh
+             ./validation.sh
+             ./rmconfig.sh
+             cd -
+      - name: Clean test-bed
+        if: success() || failure()
+        run: |
+            sudo ip -all netns delete
+            dps=$(sudo docker ps -a -q)
+            if [[ x$dps != x ]]; then
+              sudo docker stop $(sudo docker ps -a -q)
+              sudo docker rm $(sudo docker ps -a -q)
+            fi
+            sudo docker image rm ghcr.io/loxilb-io/loxilb:latest

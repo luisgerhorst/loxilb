@@ -27,6 +27,9 @@ import (
 
 	"github.com/loxilb-io/loxilb/api/restapi/handler"
 	"github.com/loxilb-io/loxilb/api/restapi/operations"
+	"github.com/loxilb-io/loxilb/api/restapi/operations/auth"
+	"github.com/loxilb-io/loxilb/api/restapi/operations/metadata"
+	"github.com/loxilb-io/loxilb/api/restapi/operations/users"
 )
 
 //go:generate swagger generate server --target ../../api --name LoxilbRestAPI --spec ../swagger.yml --principal interface{}
@@ -57,12 +60,20 @@ func configureAPI(api *operations.LoxilbRestAPIAPI) http.Handler {
 	api.JSONConsumer = runtime.JSONConsumer()
 
 	api.JSONProducer = runtime.JSONProducer()
+	// Applies when the "Authorization" header is set
+	api.BearerAuthAuth = handler.BearerAuthAuth
+	// Set your custom authorizer if needed. Default one is security.Authorized()
+	api.APIAuthorizer = handler.Authorized()
 
 	// Load balancer add and delete and get
 	api.PostConfigLoadbalancerHandler = operations.PostConfigLoadbalancerHandlerFunc(handler.ConfigPostLoadbalancer)
-	api.DeleteConfigLoadbalancerExternalipaddressIPAddressPortPortProtocolProtoHandler = operations.DeleteConfigLoadbalancerExternalipaddressIPAddressPortPortProtocolProtoHandlerFunc(handler.ConfigDeleteLoadbalancer)
+	api.DeleteConfigLoadbalancerHosturlHosturlExternalipaddressIPAddressPortPortProtocolProtoHandler = operations.DeleteConfigLoadbalancerHosturlHosturlExternalipaddressIPAddressPortPortProtocolProtoHandlerFunc(handler.ConfigDeleteLoadbalancer)
+	api.DeleteConfigLoadbalancerHosturlHosturlExternalipaddressIPAddressPortPortPortmaxPortmaxProtocolProtoHandler = operations.DeleteConfigLoadbalancerHosturlHosturlExternalipaddressIPAddressPortPortPortmaxPortmaxProtocolProtoHandlerFunc(handler.ConfigDeleteLoadbalancerPortRange)
+	api.DeleteConfigLoadbalancerExternalipaddressIPAddressPortPortProtocolProtoHandler = operations.DeleteConfigLoadbalancerExternalipaddressIPAddressPortPortProtocolProtoHandlerFunc(handler.ConfigDeleteLoadbalancerWithoutPath)
+	api.DeleteConfigLoadbalancerExternalipaddressIPAddressPortPortPortmaxPortmaxProtocolProtoHandler = operations.DeleteConfigLoadbalancerExternalipaddressIPAddressPortPortPortmaxPortmaxProtocolProtoHandlerFunc(handler.ConfigDeleteLoadbalancerPortRangeWithoutPath)
 	api.GetConfigLoadbalancerAllHandler = operations.GetConfigLoadbalancerAllHandlerFunc(handler.ConfigGetLoadbalancer)
 	api.DeleteConfigLoadbalancerAllHandler = operations.DeleteConfigLoadbalancerAllHandlerFunc(handler.ConfigDeleteAllLoadbalancer)
+	api.DeleteConfigLoadbalancerNameLbNameHandler = operations.DeleteConfigLoadbalancerNameLbNameHandlerFunc(handler.ConfigDeleteLoadbalancerByName)
 
 	// Conntrack get
 	api.GetConfigConntrackAllHandler = operations.GetConfigConntrackAllHandlerFunc(handler.ConfigGetConntrack)
@@ -135,6 +146,11 @@ func configureAPI(api *operations.LoxilbRestAPIAPI) http.Handler {
 	api.GetConfigCistateAllHandler = operations.GetConfigCistateAllHandlerFunc(handler.ConfigGetCIState)
 	api.PostConfigCistateHandler = operations.PostConfigCistateHandlerFunc(handler.ConfigPostCIState)
 
+	// BFD
+	api.GetConfigBfdAllHandler = operations.GetConfigBfdAllHandlerFunc(handler.ConfigGetBFDSession)
+	api.PostConfigBfdHandler = operations.PostConfigBfdHandlerFunc(handler.ConfigPostBFDSession)
+	api.DeleteConfigBfdRemoteIPRemoteIPHandler = operations.DeleteConfigBfdRemoteIPRemoteIPHandlerFunc(handler.ConfigDeleteBFDSession)
+
 	// Firewall
 	api.GetConfigFirewallAllHandler = operations.GetConfigFirewallAllHandlerFunc(handler.ConfigGetFW)
 	api.PostConfigFirewallHandler = operations.PostConfigFirewallHandlerFunc(handler.ConfigPostFW)
@@ -144,6 +160,7 @@ func configureAPI(api *operations.LoxilbRestAPIAPI) http.Handler {
 	api.GetConfigEndpointAllHandler = operations.GetConfigEndpointAllHandlerFunc(handler.ConfigGetEndPoint)
 	api.PostConfigEndpointHandler = operations.PostConfigEndpointHandlerFunc(handler.ConfigPostEndPoint)
 	api.DeleteConfigEndpointEpipaddressIPAddressHandler = operations.DeleteConfigEndpointEpipaddressIPAddressHandlerFunc(handler.ConfigDeleteEndPoint)
+	api.PostConfigEndpointhoststateHandler = operations.PostConfigEndpointhoststateHandlerFunc(handler.ConfigPostEndPointHostState)
 
 	// Params
 	api.PostConfigParamsHandler = operations.PostConfigParamsHandlerFunc(handler.ConfigPostParams)
@@ -151,14 +168,81 @@ func configureAPI(api *operations.LoxilbRestAPIAPI) http.Handler {
 
 	// Prometheus
 	api.GetMetricsHandler = operations.GetMetricsHandlerFunc(handler.ConfigGetPrometheusCounter)
+	api.GetConfigMetricsHandler = operations.GetConfigMetricsHandlerFunc(handler.ConfigGetPrometheusOption)
+	api.PostConfigMetricsHandler = operations.PostConfigMetricsHandlerFunc(handler.ConfigPostPrometheus)
+	api.DeleteConfigMetricsHandler = operations.DeleteConfigMetricsHandlerFunc(handler.ConfigDeletePrometheus)
 
 	// BGP Peer
+	api.GetConfigBgpNeighAllHandler = operations.GetConfigBgpNeighAllHandlerFunc(handler.ConfigGetBGPNeigh)
 	api.PostConfigBgpGlobalHandler = operations.PostConfigBgpGlobalHandlerFunc(handler.ConfigPostBGPGlobal)
 	api.PostConfigBgpNeighHandler = operations.PostConfigBgpNeighHandlerFunc(handler.ConfigPostBGPNeigh)
 	api.DeleteConfigBgpNeighIPAddressHandler = operations.DeleteConfigBgpNeighIPAddressHandlerFunc(handler.ConfigDeleteBGPNeigh)
 
-	api.PreServerShutdown = func() {}
+	// BGP Policy Defined set
+	api.GetConfigBgpPolicyDefinedsetsDefinesetTypeTypeNameHandler = operations.GetConfigBgpPolicyDefinedsetsDefinesetTypeTypeNameHandlerFunc(handler.ConfigGetBGPPolicyDefinedSetGet)
+	api.PostConfigBgpPolicyDefinedsetsDefinesetTypeHandler = operations.PostConfigBgpPolicyDefinedsetsDefinesetTypeHandlerFunc(handler.ConfigPostBGPPolicyDefinedsets)
+	api.DeleteConfigBgpPolicyDefinedsetsDefinesetTypeTypeNameHandler = operations.DeleteConfigBgpPolicyDefinedsetsDefinesetTypeTypeNameHandlerFunc(handler.ConfigDeleteBGPPolicyDefinedsets)
 
+	// BGP Policy Definitions
+	api.PostConfigBgpPolicyDefinitionsHandler = operations.PostConfigBgpPolicyDefinitionsHandlerFunc(handler.ConfigPostBGPPolicyDefinitions)
+	api.DeleteConfigBgpPolicyDefinitionsPolicyNameHandler = operations.DeleteConfigBgpPolicyDefinitionsPolicyNameHandlerFunc(handler.ConfigDeleteBGPPolicyDefinitions)
+	api.GetConfigBgpPolicyDefinitionsAllHandler = operations.GetConfigBgpPolicyDefinitionsAllHandlerFunc(handler.ConfigGetBGPPolicyDefinitions)
+
+	// BGP Policy Apply
+	api.PostConfigBgpPolicyApplyHandler = operations.PostConfigBgpPolicyApplyHandlerFunc(handler.ConfigPostBGPPolicyApply)
+	api.DeleteConfigBgpPolicyApplyHandler = operations.DeleteConfigBgpPolicyApplyHandlerFunc(handler.ConfigDeleteBGPPolicyApply)
+
+	// Metrics
+	api.GetMetricsFlowcountHandler = operations.GetMetricsFlowcountHandlerFunc(handler.ConfigGetFlowCount)
+	api.GetMetricsLbrulecountHandler = operations.GetMetricsLbrulecountHandlerFunc(handler.ConfigGetLbRuleCount)
+	api.GetMetricsNewflowcountHandler = operations.GetMetricsNewflowcountHandlerFunc(handler.ConfigGetNewFlowCount)
+	api.GetMetricsRequestcountHandler = operations.GetMetricsRequestcountHandlerFunc(handler.ConfigGetRequestCount)
+	api.GetMetricsErrorcountHandler = operations.GetMetricsErrorcountHandlerFunc(handler.ConfigGetErrorCount)
+	api.GetMetricsProcessedtrafficHandler = operations.GetMetricsProcessedtrafficHandlerFunc(handler.ConfigGetProcessedTraffic)
+	api.GetMetricsLbprocessedtrafficHandler = operations.GetMetricsLbprocessedtrafficHandlerFunc(handler.ConfigGetLbProcessedTraffic)
+	api.GetMetricsEpdisttrafficHandler = operations.GetMetricsEpdisttrafficHandlerFunc(handler.ConfigGetEpDistTraffic)
+	api.GetMetricsServicedisttrafficHandler = operations.GetMetricsServicedisttrafficHandlerFunc(handler.ConfigGetServiceDistTraffic)
+	api.GetMetricsFwdropsHandler = operations.GetMetricsFwdropsHandlerFunc(handler.ConfigGetFwDrops)
+	api.GetMetricsReqcountperclientHandler = operations.GetMetricsReqcountperclientHandlerFunc(handler.ConfigGetReqCounterPerClient)
+	api.GetMetricsHostcountHandler = operations.GetMetricsHostcountHandlerFunc(handler.ConfigGetHostCount)
+
+	// Log
+	api.GetLogsHandler = operations.GetLogsHandlerFunc(handler.ConfigGetLogs)
+	api.GetLogArchivesHandler = operations.GetLogArchivesHandlerFunc(handler.ConfigGetLogArchives)
+	api.GetLogArchivesFilenameHandler = operations.GetLogArchivesFilenameHandlerFunc(handler.ConfigGetLogArchivesFilename)
+
+	// Nodegraph
+	api.GetNodegraphAllHandler = operations.GetNodegraphAllHandlerFunc(handler.ConfigGetNodeGraph)
+	api.GetNodegraphServiceHandler = operations.GetNodegraphServiceHandlerFunc(handler.ConfigGetNodeGraphService)
+
+	// Version
+	api.GetVersionHandler = operations.GetVersionHandlerFunc(handler.ConfigGetVersion)
+
+	// metadata
+	api.MetadataGetMetaHandler = metadata.GetMetaHandlerFunc(handler.ConfigGetMetadata)
+
+	// It works only if the UserServiceEnable option is enabled.
+	if opts.Opts.UserServiceEnable {
+		// login logout api
+		api.AuthPostAuthLoginHandler = auth.PostAuthLoginHandlerFunc(handler.AuthPostLogin)
+		api.AuthPostAuthLogoutHandler = auth.PostAuthLogoutHandlerFunc(handler.AuthPostLogout)
+
+		// Users API
+		api.UsersGetAuthUsersHandler = users.GetAuthUsersHandlerFunc(handler.UsersGetUsers)
+		api.UsersPostAuthUsersHandler = users.PostAuthUsersHandlerFunc(handler.UsersPostUsers)
+		api.UsersDeleteAuthUsersIDHandler = users.DeleteAuthUsersIDHandlerFunc(handler.UsersDeleteUsers)
+		api.UsersPutAuthUsersIDHandler = users.PutAuthUsersIDHandlerFunc(handler.UsersPutUsers)
+	}
+
+	if opts.Opts.Oauth2Enable {
+		// OAuth2 API
+		handler.InitOAuthConfigs()
+		api.AuthGetOauthProviderHandler = auth.GetOauthProviderHandlerFunc(handler.AuthGetOauthProvider)
+		api.AuthGetOauthProviderCallbackHandler = auth.GetOauthProviderCallbackHandlerFunc(handler.AuthGetOauthProviderCallback)
+		api.AuthGetOauthProviderTokenHandler = auth.GetOauthProviderTokenHandlerFunc(handler.RefreshTokenHandler)
+	}
+
+	api.PreServerShutdown = func() {}
 	api.ServerShutdown = func() {}
 
 	return setupGlobalMiddleware(api.Serve(setupMiddlewares))
@@ -179,6 +263,16 @@ func configureServer(s *http.Server, scheme, addr string) {
 // The middleware configuration is for the handler executors. These do not apply to the swagger.json document.
 // The middleware executes after routing but before authentication, binding and validation.
 func setupMiddlewares(handler http.Handler) http.Handler {
+	// User service is disabled, so we need to set a valid token for the Authorization header.
+	if !opts.Opts.UserServiceEnable {
+		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			// Set a any token for the Authorization header.
+			if r.Header.Get("Authorization") == "" {
+				r.Header.Set("Authorization", "valid")
+			}
+			handler.ServeHTTP(w, r)
+		})
+	}
 	return handler
 }
 

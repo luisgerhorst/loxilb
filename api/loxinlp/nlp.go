@@ -19,21 +19,22 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"io/ioutil"
 	"net"
 	"os"
 	"os/exec"
 	"regexp"
+	"runtime/debug"
 	"strconv"
 	"strings"
 	"syscall"
 	"time"
 
+	cmn "github.com/loxilb-io/loxilb/common"
+	opt "github.com/loxilb-io/loxilb/options"
+	"github.com/loxilb-io/loxilb/pkg/utils"
 	tk "github.com/loxilb-io/loxilib"
 	nlp "github.com/vishvananda/netlink"
 	"golang.org/x/sys/unix"
-
-	cmn "github.com/loxilb-io/loxilb/common"
 )
 
 const (
@@ -86,25 +87,39 @@ type NlH struct {
 	IMap      map[string]Intf
 	BlackList string
 	BLRgx     *regexp.Regexp
+	WhiteList string
+	WLRgx     *regexp.Regexp
 }
 
-var hooks cmn.NetHookInterface
+var (
+	skipIfRoute bool
+	hooks       cmn.NetHookInterface
+)
 
 func NlpRegister(hook cmn.NetHookInterface) {
 	hooks = hook
 }
 
-func iSBlackListedIntf(name string, masterIdx int) bool {
+func NlpIsBlackListedIntf(name string, masterIdx int) bool {
+	if nNl.WhiteList != "none" {
+		filter := nNl.WLRgx.MatchString(name)
+		return !filter
+	}
+
+	if name == "lo" {
+		return true
+	}
 	filter := nNl.BLRgx.MatchString(name)
 	return filter
 }
 
 func applyAllConfig(name string) bool {
-	command := "loxicmd apply --per-intf " + name + " -c /etc/loxilb/ipconfig/"
+
+	command := "loxicmd apply --per-intf " + name + " -c " + opt.Opts.ConfigPath + "/ipconfig/"
 	cmd := exec.Command("bash", "-c", command)
 	output, err := cmd.Output()
 	if err != nil {
-		fmt.Println(err)
+		tk.LogIt(tk.LogError, "nlp: Failed to apply Route Config for %s: %v\n", name, err)
 		return false
 	}
 	fmt.Printf("%v\n", string(output))
@@ -115,15 +130,16 @@ func applyLoadBalancerConfig() bool {
 	var resp struct {
 		Attr []cmn.LbRuleMod `json:"lbAttr"`
 	}
-	byteBuf, err := ioutil.ReadFile("/etc/loxilb/lbconfig.txt")
+	dpath := opt.Opts.ConfigPath + "/lbconfig.txt"
+	byteBuf, err := os.ReadFile(dpath)
 	if err != nil {
-		fmt.Println(err.Error())
+		tk.LogIt(tk.LogError, "nlp: Failed to read LB Config file: %v\n", err)
 		return false
 	}
 
-	// Unmashal to Json
+	// Unmarshal to Json
 	if err := json.Unmarshal(byteBuf, &resp); err != nil {
-		fmt.Printf("Error: Failed to unmarshal File: (%s)\n", err.Error())
+		tk.LogIt(tk.LogError, "nlp: Failed to Unmarshal File: %v\n", err)
 		return false
 	}
 	for _, lb := range resp.Attr {
@@ -136,15 +152,16 @@ func applySessionConfig() bool {
 	var resp struct {
 		Attr []cmn.SessionMod `json:"sessionAttr"`
 	}
-	byteBuf, err := ioutil.ReadFile("/etc/loxilb/sessionconfig.txt")
+	dpath := opt.Opts.ConfigPath + "/sessionconfig.txt"
+	byteBuf, err := os.ReadFile(dpath)
 	if err != nil {
-		fmt.Println(err.Error())
+		tk.LogIt(tk.LogError, "nlp: Failed to read Session Config file: %v\n", err)
 		return false
 	}
 
-	// Unmashal to Json
+	// Unmarshal to Json
 	if err := json.Unmarshal(byteBuf, &resp); err != nil {
-		fmt.Printf("Error: Failed to unmarshal File: (%s)\n", err.Error())
+		tk.LogIt(tk.LogError, "nlp: Failed to Unmarshal File: %v\n", err)
 		return false
 	}
 	for _, session := range resp.Attr {
@@ -157,15 +174,16 @@ func applyUlClConfig() bool {
 	var resp struct {
 		Attr []cmn.SessionUlClMod `json:"ulclAttr"`
 	}
-	byteBuf, err := ioutil.ReadFile("/etc/loxilb/sessionulclconfig.txt")
+	dpath := opt.Opts.ConfigPath + "/sessionulclconfig.txt"
+	byteBuf, err := os.ReadFile(dpath)
 	if err != nil {
-		fmt.Println(err.Error())
+		tk.LogIt(tk.LogError, "nlp: Failed to read UlCl Config file: %v\n", err)
 		return false
 	}
 
-	// Unmashal to Json
+	// Unmarshal to Json
 	if err := json.Unmarshal(byteBuf, &resp); err != nil {
-		fmt.Printf("Error: Failed to unmarshal File: (%s)\n", err.Error())
+		tk.LogIt(tk.LogError, "nlp: Failed to Unmarshal File: %s\n", err)
 		return false
 	}
 	for _, ulcl := range resp.Attr {
@@ -178,15 +196,16 @@ func applyFWConfig() bool {
 	var resp struct {
 		Attr []cmn.FwRuleMod `json:"fwAttr"`
 	}
-	byteBuf, err := ioutil.ReadFile("/etc/loxilb/FWconfig.txt")
+	dpath := opt.Opts.ConfigPath + "/FWconfig.txt"
+	byteBuf, err := os.ReadFile(dpath)
 	if err != nil {
-		fmt.Println(err.Error())
+		tk.LogIt(tk.LogError, "nlp: Failed to read FW Config file: %v\n", err)
 		return false
 	}
 
-	// Unmashal to Json
+	// Unmarshal to Json
 	if err := json.Unmarshal(byteBuf, &resp); err != nil {
-		fmt.Printf("Error: Failed to unmarshal File: (%s)\n", err.Error())
+		tk.LogIt(tk.LogError, "nlp: Failed to Unmarshal File: %v\n", err)
 		return false
 	}
 	for _, fw := range resp.Attr {
@@ -199,15 +218,16 @@ func applyEPConfig() bool {
 	var resp struct {
 		Attr []cmn.EndPointMod `json:"Attr"`
 	}
-	byteBuf, err := ioutil.ReadFile("/etc/loxilb/EPconfig.txt")
+	dpath := opt.Opts.ConfigPath + "/EPconfig.txt"
+	byteBuf, err := os.ReadFile(dpath)
 	if err != nil {
-		fmt.Println(err.Error())
+		tk.LogIt(tk.LogError, "nlp: Failed to read EP Config File: %v\n", err)
 		return false
 	}
 
-	// Unmashal to Json
+	// Unmarshal to Json
 	if err := json.Unmarshal(byteBuf, &resp); err != nil {
-		fmt.Printf("Error: Failed to unmarshal File: (%s)\n", err.Error())
+		tk.LogIt(tk.LogError, "nlp: Failed to Unmarshal File: %v\n", err)
 		return false
 	}
 	for _, ep := range resp.Attr {
@@ -216,13 +236,35 @@ func applyEPConfig() bool {
 	return true
 }
 
+func ApplyBFDConfig() bool {
+	var resp struct {
+		Attr []cmn.BFDMod `json:"Attr"`
+	}
+	dpath := opt.Opts.ConfigPath + "/BFDconfig.txt"
+	byteBuf, err := os.ReadFile(dpath)
+	if err != nil {
+		tk.LogIt(tk.LogError, "nlp: Failed to read BFD Config File: %v\n", err)
+		return false
+	}
+
+	// Unmarshal to Json
+	if err := json.Unmarshal(byteBuf, &resp); err != nil {
+		tk.LogIt(tk.LogError, "nlp: Failed to Unmarshal File: %v\n", err)
+		return false
+	}
+	for _, bfd := range resp.Attr {
+		hooks.NetBFDAdd(&bfd)
+	}
+	return true
+}
+
 func applyRoutes(name string) {
-	tk.LogIt(tk.LogDebug, "[NLP] Applying Route Config for %s \n", name)
-	command := "loxicmd apply --per-intf " + name + " -r -c /etc/loxilb/ipconfig/"
+	tk.LogIt(tk.LogDebug, "nlp: Applying Route Config for %s \n", name)
+	command := "loxicmd apply --per-intf " + name + " -r -c " + opt.Opts.ConfigPath + "/ipconfig/"
 	cmd := exec.Command("bash", "-c", command)
 	output, err := cmd.Output()
 	if err != nil {
-		fmt.Println(err)
+		tk.LogIt(tk.LogError, "nlp: Failed to apply Route Config for %s: %v\n", name, err)
 		return
 	}
 	fmt.Printf("%v\n", string(output))
@@ -231,20 +273,22 @@ func applyRoutes(name string) {
 func applyConfigMap(name string, state bool, add bool) {
 	var configApplied bool
 	var needRouteApply bool
-	if _, err := os.Stat("/etc/loxilb/ipconfig/"); errors.Is(err, os.ErrNotExist) {
+	dpath := opt.Opts.ConfigPath + "/ipconfig/"
+
+	if _, err := os.Stat(dpath); errors.Is(err, os.ErrNotExist) {
 		return
 	}
 	if add {
 		if _, ok := nNl.IMap[name]; ok {
 			configApplied = nNl.IMap[name].configApplied
 			if !nNl.IMap[name].configApplied {
-				tk.LogIt(tk.LogDebug, "[NLP] Applying Config for %s \n", name)
+				tk.LogIt(tk.LogDebug, "nlp: Applying Config for %s \n", name)
 				if applyAllConfig(name) {
 					configApplied = true
-					tk.LogIt(tk.LogDebug, "[NLP] Applied Config for %s \n", name)
+					tk.LogIt(tk.LogDebug, "nlp: Applied Config for %s \n", name)
 				} else {
 					configApplied = false
-					tk.LogIt(tk.LogError, "[NLP] Applied Config for %s - FAILED\n", name)
+					tk.LogIt(tk.LogError, "nlp: Applied Config for %s - FAILED\n", name)
 				}
 				nNl.IMap[name] = Intf{dev: name, state: state, configApplied: configApplied, needRouteApply: false}
 			} else if nNl.IMap[name].state != state {
@@ -254,19 +298,19 @@ func applyConfigMap(name string, state bool, add bool) {
 					needRouteApply = false
 				} else if !state {
 					needRouteApply = true
-					tk.LogIt(tk.LogDebug, "[NLP] Route Config for %s will be tried\n", name)
+					tk.LogIt(tk.LogDebug, "nlp: Route Config for %s will be tried\n", name)
 				}
 				nNl.IMap[name] = Intf{dev: name, state: state, configApplied: configApplied, needRouteApply: needRouteApply}
 			}
-			tk.LogIt(tk.LogDebug, "[NLP] ConfigMap for %s : %v \n", name, nNl.IMap[name])
+			tk.LogIt(tk.LogDebug, "nlp: ConfigMap for %s : %v \n", name, nNl.IMap[name])
 		} else {
-			tk.LogIt(tk.LogDebug, "[NLP] Applying Config for %s \n", name)
+			tk.LogIt(tk.LogDebug, "nlp: Applying Config for %s \n", name)
 			if applyAllConfig(name) {
 				configApplied = true
-				tk.LogIt(tk.LogDebug, "[NLP] Applied Config for %s \n", name)
+				tk.LogIt(tk.LogDebug, "nlp: Applied Config for %s \n", name)
 			} else {
 				configApplied = false
-				tk.LogIt(tk.LogError, "[NLP] Applied Config for %s - FAILED\n", name)
+				tk.LogIt(tk.LogError, "nlp: Applied Config for %s - FAILED\n", name)
 			}
 			nNl.IMap[name] = Intf{dev: name, state: state, configApplied: configApplied}
 		}
@@ -279,12 +323,12 @@ func AddFDBNoHook(macAddress, ifName string) int {
 	var ret int
 	MacAddress, err := net.ParseMAC(macAddress)
 	if err != nil {
-		tk.LogIt(tk.LogWarning, "[NLP] MacAddress Parse %s Fail\n", macAddress)
+		tk.LogIt(tk.LogWarning, "nlp: MacAddress Parse %s Fail\n", macAddress)
 		return -1
 	}
 	IfName, err := nlp.LinkByName(ifName)
 	if err != nil {
-		tk.LogIt(tk.LogWarning, "[NLP] Port %s find Fail\n", ifName)
+		tk.LogIt(tk.LogWarning, "nlp: Port %s find Fail\n", ifName)
 		return -1
 	}
 
@@ -298,8 +342,7 @@ func AddFDBNoHook(macAddress, ifName string) int {
 	}
 	err = nlp.NeighAppend(&neigh)
 	if err != nil {
-		fmt.Printf("err.Error(): %v\n", err.Error())
-		tk.LogIt(tk.LogWarning, "[NLP] FDB added Fail\n")
+		tk.LogIt(tk.LogWarning, "nlp: FDB added Fail: %v\n", err)
 		return -1
 	}
 	return ret
@@ -309,12 +352,12 @@ func DelFDBNoHook(macAddress, ifName string) int {
 	var ret int
 	MacAddress, err := net.ParseMAC(macAddress)
 	if err != nil {
-		tk.LogIt(tk.LogWarning, "[NLP] MacAddress Parse %s Fail\n", macAddress)
+		tk.LogIt(tk.LogWarning, "nlp: MacAddress Parse %s Fail\n", macAddress)
 		return -1
 	}
 	IfName, err := nlp.LinkByName(ifName)
 	if err != nil {
-		tk.LogIt(tk.LogWarning, "[NLP] Port %s find Fail\n", ifName)
+		tk.LogIt(tk.LogWarning, "nlp: Port %s find Fail\n", ifName)
 		return -1
 	}
 
@@ -328,7 +371,7 @@ func DelFDBNoHook(macAddress, ifName string) int {
 	}
 	err = nlp.NeighDel(&neigh)
 	if err != nil {
-		tk.LogIt(tk.LogWarning, "[NLP] FDB delete Fail\n")
+		tk.LogIt(tk.LogWarning, "nlp: FDB delete Fail\n")
 		return -1
 	}
 	return ret
@@ -340,12 +383,12 @@ func AddNeighNoHook(address, ifName, macAddress string) int {
 
 	IfName, err := nlp.LinkByName(ifName)
 	if err != nil {
-		tk.LogIt(tk.LogWarning, "[NLP] Port %s find Fail\n", ifName)
+		tk.LogIt(tk.LogWarning, "nlp: Port %s find Fail\n", ifName)
 		return -1
 	}
 	MacAddress, err := net.ParseMAC(macAddress)
 	if err != nil {
-		tk.LogIt(tk.LogWarning, "[NLP] MacAddress Parse %s Fail\n", macAddress)
+		tk.LogIt(tk.LogWarning, "nlp: MacAddress Parse %s Fail\n", macAddress)
 		return -1
 	}
 	// Make Neigh
@@ -358,7 +401,7 @@ func AddNeighNoHook(address, ifName, macAddress string) int {
 
 	err = nlp.NeighAdd(&neigh)
 	if err != nil {
-		tk.LogIt(tk.LogWarning, "[NLP] Neighbor added Fail\n")
+		tk.LogIt(tk.LogWarning, "nlp: Neighbor added Fail\n")
 		return -1
 	}
 	return ret
@@ -366,12 +409,21 @@ func AddNeighNoHook(address, ifName, macAddress string) int {
 
 func DelNeighNoHook(address, ifName string) int {
 	var ret int
+	Address := net.ParseIP(address)
 	IfName, err := nlp.LinkByName(ifName)
 	if err != nil {
-		tk.LogIt(tk.LogWarning, "[NLP] Port %s find Fail\n", ifName)
-		return -1
+		nList, err1 := nlp.NeighList(0, 0)
+		if err1 != nil {
+			tk.LogIt(tk.LogWarning, "nlp: Neighbor List get Failed\n")
+			return -1
+		}
+		for _, n := range nList {
+			if n.IP.String() == address {
+				nlp.NeighDel(&n)
+			}
+		}
+		return 0
 	}
-	Address := net.ParseIP(address)
 
 	// Make Neigh
 	neigh := nlp.Neigh{
@@ -380,7 +432,7 @@ func DelNeighNoHook(address, ifName string) int {
 	}
 	err = nlp.NeighDel(&neigh)
 	if err != nil {
-		tk.LogIt(tk.LogWarning, "[NLP] Neighbor delete Fail\n")
+		tk.LogIt(tk.LogWarning, "nlp: Neighbor delete Fail\n")
 		return -1
 	}
 	return ret
@@ -400,7 +452,7 @@ func AddVLANNoHook(vlanid int) int {
 			},
 		}
 		if err := nlp.LinkAdd(newBr); err != nil {
-			tk.LogIt(tk.LogWarning, "[NLP] Vlan Bridge added Fail\n")
+			tk.LogIt(tk.LogWarning, "nlp: Vlan Bridge added Fail\n")
 			ret = -1
 		}
 		nlp.LinkSetUp(newBr)
@@ -414,17 +466,17 @@ func DelVLANNoHook(vlanid int) int {
 	vlanLink, err := nlp.LinkByName(VlanName)
 	if err != nil {
 		ret = -1
-		tk.LogIt(tk.LogWarning, "[NLP] Vlan Bridge get Fail: %s\n", err.Error())
+		tk.LogIt(tk.LogWarning, "nlp: Vlan Bridge get Fail: %s\n", err.Error())
 	}
 	err = nlp.LinkSetDown(vlanLink)
 	if err != nil {
 		ret = -1
-		tk.LogIt(tk.LogWarning, "[NLP] Vlan Bridge Link Down Fail: %s\n", err.Error())
+		tk.LogIt(tk.LogWarning, "nlp: Vlan Bridge Link Down Fail: %s\n", err.Error())
 	}
 	err = nlp.LinkDel(vlanLink)
 	if err != nil {
 		ret = -1
-		tk.LogIt(tk.LogWarning, "[NLP] Vlan Bridge delete Fail: %s\n", err.Error())
+		tk.LogIt(tk.LogWarning, "nlp: Vlan Bridge delete Fail: %s\n", err.Error())
 	}
 
 	return ret
@@ -437,12 +489,12 @@ func AddVLANMemberNoHook(vlanid int, intfName string, tagged bool) int {
 	VlanBridgeName := fmt.Sprintf("vlan%d", vlanid)
 	VlanLink, err := nlp.LinkByName(VlanBridgeName)
 	if err != nil {
-		tk.LogIt(tk.LogWarning, "[NLP] Vlan Bridge finding Fail\n")
+		tk.LogIt(tk.LogWarning, "nlp: Vlan Bridge finding Fail\n")
 		return 404
 	}
 	ParentInterface, err := nlp.LinkByName(intfName)
 	if err != nil {
-		tk.LogIt(tk.LogWarning, "[NLP] Parent interface finding Fail\n")
+		tk.LogIt(tk.LogWarning, "nlp: Parent interface finding Fail\n")
 		return 404
 	}
 	if tagged {
@@ -455,7 +507,7 @@ func AddVLANMemberNoHook(vlanid int, intfName string, tagged bool) int {
 			VlanId: vlanid,
 		}
 		if err := nlp.LinkAdd(VlanDev); err != nil {
-			tk.LogIt(tk.LogWarning, "failed to create VlanDev: [ %v ] with the error: %s", VlanDev, err)
+			tk.LogIt(tk.LogWarning, "nlp: failed to create VlanDev: [ %v ] with the error: %s\n", VlanDev, err)
 			ret = -1
 		}
 	} else {
@@ -466,7 +518,7 @@ func AddVLANMemberNoHook(vlanid int, intfName string, tagged bool) int {
 	nlp.LinkSetUp(VlanDevNonPointer)
 	err = nlp.LinkSetMaster(VlanDevNonPointer, VlanLink)
 	if err != nil {
-		tk.LogIt(tk.LogWarning, "failed to master: [ %v ] with the error: %s", VlanDevNonPointer, err)
+		tk.LogIt(tk.LogWarning, "nlp: failed to master: [ %v ] with the error: %s\n", VlanDevNonPointer, err)
 		ret = -1
 	}
 
@@ -479,12 +531,12 @@ func DelVLANMemberNoHook(vlanid int, intfName string, tagged bool) int {
 	VlanName := fmt.Sprintf("vlan%d", vlanid)
 	_, err := nlp.LinkByName(VlanName)
 	if err != nil {
-		tk.LogIt(tk.LogWarning, "[NLP] Vlan Bridge finding Fail\n")
+		tk.LogIt(tk.LogWarning, "nlp: Vlan Bridge finding Fail\n")
 		return 404
 	}
 	_, err = nlp.LinkByName(intfName)
 	if err != nil {
-		tk.LogIt(tk.LogWarning, "[NLP] Parent interface finding Fail\n")
+		tk.LogIt(tk.LogWarning, "nlp: Parent interface finding Fail\n")
 		return 404
 	}
 	if tagged {
@@ -494,12 +546,12 @@ func DelVLANMemberNoHook(vlanid int, intfName string, tagged bool) int {
 	}
 	VlanDevNonPointer, err := nlp.LinkByName(VlanDevName)
 	if err != nil {
-		tk.LogIt(tk.LogWarning, "[NLP] Vlan interface finding Fail\n")
+		tk.LogIt(tk.LogWarning, "nlp: Vlan interface finding Fail\n")
 		return 404
 	}
 	err = nlp.LinkSetNoMaster(VlanDevNonPointer)
 	if err != nil {
-		tk.LogIt(tk.LogWarning, "[NLP] No master fail \n")
+		tk.LogIt(tk.LogWarning, "nlp: No master fail \n")
 	}
 	if tagged {
 		nlp.LinkDel(VlanDevNonPointer)
@@ -514,40 +566,47 @@ func AddVxLANBridgeNoHook(vxlanid int, epIntfName string) int {
 	_, err := nlp.LinkByName(VxlanBridgeName)
 	if err != nil {
 
+		hwAddr, err := utils.GenerateRandomMAC()
+		if err != nil {
+			tk.LogIt(tk.LogError, "nlp: Error generating hwAddr\n")
+			return 403
+		}
 		EndpointInterface, err := nlp.LinkByName(epIntfName)
 		if err != nil {
-			tk.LogIt(tk.LogWarning, "[NLP] Endpoint interface finding Fail\n")
+			tk.LogIt(tk.LogWarning, "nlp: Endpoint interface finding Fail\n")
 			return 404
 		}
 		LocalIPs, err := nlp.AddrList(EndpointInterface, nlp.FAMILY_V4)
 		if err != nil || len(LocalIPs) == 0 {
-			tk.LogIt(tk.LogWarning, "[NLP] Endpoint interface dosen't have Local IP address\n")
+			tk.LogIt(tk.LogWarning, "nlp: Endpoint interface doesn't have Local IP address\n")
 			return 403
 		}
 		VxlanDev := &nlp.Vxlan{
 			LinkAttrs: nlp.LinkAttrs{
-				Name: VxlanBridgeName,
-				MTU:  9000, // Static Value for Vxlan in loxiLB
+				Name:         VxlanBridgeName,
+				MTU:          9000, // Static Value for Vxlan in loxiLB
+				HardwareAddr: hwAddr,
 			},
 			SrcAddr:      LocalIPs[0].IP,
 			VtepDevIndex: EndpointInterface.Attrs().Index,
 			VxlanId:      vxlanid,
-			Port:         4789, // VxLAN default port
+			Port:         8472, // VxLAN default port
+			Learning:     true,
 		}
 		if err := nlp.LinkAdd(VxlanDev); err != nil {
-			tk.LogIt(tk.LogWarning, "failed to create VxlanDev: [ %v ] with the error: %s", VxlanDev, err)
+			tk.LogIt(tk.LogWarning, "nlp: failed to create VxlanDev: [ %v ] with the error: %s\n", VxlanDev, err)
 			ret = -1
 		}
 		time.Sleep(1 * time.Second)
 		VxlanDevNonPointer, err := nlp.LinkByName(VxlanBridgeName)
 		if err != nil {
-			tk.LogIt(tk.LogWarning, "[NLP] Vxlan Interface create fail: %s\n", err.Error())
+			tk.LogIt(tk.LogWarning, "nlp: Vxlan Interface create fail: %s\n", err.Error())
 			return -1
 		}
 		nlp.LinkSetUp(VxlanDevNonPointer)
 
 	} else {
-		tk.LogIt(tk.LogWarning, "[NLP] Vxlan Bridge Already exists\n")
+		tk.LogIt(tk.LogWarning, "nlp: Vxlan Bridge Already exists\n")
 		return 409
 	}
 
@@ -560,17 +619,17 @@ func DelVxLANNoHook(vxlanid int) int {
 	vxlanLink, err := nlp.LinkByName(VxlanName)
 	if err != nil {
 		ret = -1
-		tk.LogIt(tk.LogWarning, "[NLP] Vxlan Bridge get Fail:%s\n", err.Error())
+		tk.LogIt(tk.LogWarning, "nlp: Vxlan Bridge get Fail:%s\n", err.Error())
 	}
 	err = nlp.LinkSetDown(vxlanLink)
 	if err != nil {
 		ret = -1
-		tk.LogIt(tk.LogWarning, "[NLP] Vxlan Bridge Link Down Fail:%s\n", err.Error())
+		tk.LogIt(tk.LogWarning, "nlp: Vxlan Bridge Link Down Fail:%s\n", err.Error())
 	}
 	err = nlp.LinkDel(vxlanLink)
 	if err != nil {
 		ret = -1
-		tk.LogIt(tk.LogWarning, "[NLP] Vxlan Bridge delete Fail:%s\n", err.Error())
+		tk.LogIt(tk.LogWarning, "nlp: Vxlan Bridge delete Fail:%s\n", err.Error())
 	}
 
 	return ret
@@ -580,7 +639,7 @@ func GetVxLANPeerNoHook() (map[int][]string, error) {
 	ret := map[int][]string{}
 	links, err := nlp.LinkList()
 	if err != nil {
-		tk.LogIt(tk.LogError, "[NLP] Error in getting device info(%v)\n", err)
+		tk.LogIt(tk.LogError, "nlp: Error in getting device info(%v)\n", err)
 		return nil, err
 	}
 
@@ -588,7 +647,7 @@ func GetVxLANPeerNoHook() (map[int][]string, error) {
 		if link.Type() == "vxlan" {
 			neighs, err := nlp.NeighList(link.Attrs().Index, unix.AF_BRIDGE)
 			if err != nil {
-				tk.LogIt(tk.LogError, "[NLP] Error getting neighbors list %v for intf %s\n",
+				tk.LogIt(tk.LogError, "nlp: Error getting neighbors list %v for intf %s\n",
 					err, link.Attrs().Name)
 				return nil, err
 			}
@@ -606,7 +665,7 @@ func GetFDBNoHook() ([]map[string]string, error) {
 	ret := []map[string]string{}
 	links, err := nlp.LinkList()
 	if err != nil {
-		tk.LogIt(tk.LogError, "[NLP] Error in getting device info(%v)\n", err)
+		tk.LogIt(tk.LogError, "nlp: Error in getting device info(%v)\n", err)
 		return nil, err
 	}
 
@@ -614,7 +673,7 @@ func GetFDBNoHook() ([]map[string]string, error) {
 		if link.Attrs().MasterIndex > 0 {
 			fdbs, err := nlp.NeighList(link.Attrs().Index, unix.AF_BRIDGE)
 			if err != nil {
-				tk.LogIt(tk.LogError, "[NLP] Error getting fdb list %v for intf %s\n",
+				tk.LogIt(tk.LogError, "nlp: Error getting fdb list %v for intf %s\n",
 					err, link.Attrs().Name)
 				return nil, err
 			}
@@ -635,7 +694,7 @@ func AddVxLANPeerNoHook(vxlanid int, PeerIP string) int {
 	ifName := fmt.Sprintf("vxlan%d", vxlanid)
 	IfName, err := nlp.LinkByName(ifName)
 	if err != nil {
-		tk.LogIt(tk.LogWarning, "[NLP] VxLAN %s find Fail\n", ifName)
+		tk.LogIt(tk.LogWarning, "nlp: VxLAN %s find Fail\n", ifName)
 		return -1
 	}
 	peerIP := net.ParseIP(PeerIP)
@@ -650,8 +709,7 @@ func AddVxLANPeerNoHook(vxlanid int, PeerIP string) int {
 	}
 	err = nlp.NeighAppend(&Peer)
 	if err != nil {
-		fmt.Printf("err.Error(): %v\n", err.Error())
-		tk.LogIt(tk.LogWarning, "[NLP] VxLAN Peer added Fail\n")
+		tk.LogIt(tk.LogWarning, "nlp: VxLAN Peer added Fail: %v\n", err)
 		return -1
 	}
 	return ret
@@ -663,7 +721,7 @@ func DelVxLANPeerNoHook(vxlanid int, PeerIP string) int {
 	ifName := fmt.Sprintf("vxlan%d", vxlanid)
 	IfName, err := nlp.LinkByName(ifName)
 	if err != nil {
-		tk.LogIt(tk.LogWarning, "[NLP] VxLAN %s find Fail\n", ifName)
+		tk.LogIt(tk.LogWarning, "nlp: VxLAN %s find Fail\n", ifName)
 		return -1
 	}
 	peerIP := net.ParseIP(PeerIP)
@@ -679,7 +737,7 @@ func DelVxLANPeerNoHook(vxlanid int, PeerIP string) int {
 
 	err = nlp.NeighDel(&Peer)
 	if err != nil {
-		tk.LogIt(tk.LogWarning, "[NLP] VxLAN Peer delete Fail\n")
+		tk.LogIt(tk.LogWarning, "nlp: VxLAN Peer delete Fail\n")
 		return -1
 	}
 	return ret
@@ -710,14 +768,18 @@ func ModLink(link nlp.Link, add bool) int {
 	} else {
 		mod = "DELETE"
 	}
-	tk.LogIt(tk.LogDebug, "[NLP] %s Device %v mac(%v) attrs(%v) info recvd\n", mod, name, ifMac, attrs)
+	tk.LogIt(tk.LogDebug, "nlp: %s dev %v mac(%v) attrs(%v) - info recvd\n", mod, name, ifMac, attrs)
 
 	if _, ok := link.(*nlp.Bridge); ok {
 
 		vid, _ = strconv.Atoi(strings.Join(re.FindAllString(name, -1), " "))
 		// Dirty hack to support docker0 bridge
-		if vid == 0 && name == "docker0" {
-			vid = 4090
+		if vid == 0 {
+			if name == "docker0" {
+				vid = 4090
+			} else if name == "cni0" {
+				vid = 4091
+			}
 		}
 		if add {
 			ret, err = hooks.NetVlanAdd(&cmn.VlanMod{Vid: vid, Dev: name, LinkIndex: idx,
@@ -727,10 +789,11 @@ func ModLink(link nlp.Link, add bool) int {
 		}
 
 		if err != nil {
-			tk.LogIt(tk.LogInfo, "[NLP] Bridge %v, %d, %v, %v, %v %s failed\n", name, vid, ifMac, state, mtu, mod)
-			fmt.Println(err)
+			if !strings.Contains(err.Error(), "exists") {
+				tk.LogIt(tk.LogWarning, "nlp: Bridge %v, %d, %v, %v, %v %s failed (%s)\n", name, vid, ifMac, state, mtu, mod, err)
+			}
 		} else {
-			tk.LogIt(tk.LogInfo, "[NLP] Bridge %v, %d, %v, %v, %v %s [OK]\n", name, vid, ifMac, state, mtu, mod)
+			tk.LogIt(tk.LogInfo, "nlp: Bridge %v, %d, %v, %v, %v %s [OK]\n", name, vid, ifMac, state, mtu, mod)
 		}
 
 		if (add && (err != nil)) || !add {
@@ -742,13 +805,17 @@ func ModLink(link nlp.Link, add bool) int {
 	if attrs.MasterIndex > 0 {
 		brLink, err = nlp.LinkByIndex(attrs.MasterIndex)
 		if err != nil {
-			fmt.Println(err)
+			tk.LogIt(tk.LogError, "nlp: Failed to find bridge link by master: %v\n", err)
 			return -1
 		}
 		vid, _ = strconv.Atoi(strings.Join(re.FindAllString(brLink.Attrs().Name, -1), " "))
 		// Dirty hack to support docker bridge
-		if vid == 0 && brLink.Attrs().Name == "docker0" {
-			vid = 4090
+		if vid == 0 {
+			if brLink.Attrs().Name == "docker0" {
+				vid = 4090
+			} else if brLink.Attrs().Name == "cni0" {
+				vid = 4091
+			}
 		}
 	}
 
@@ -765,17 +832,16 @@ func ModLink(link nlp.Link, add bool) int {
 				ret, err = hooks.NetVlanPortDel(&cmn.VlanPortMod{Vid: vid, Dev: pname[0], Tagged: true})
 			}
 			if err != nil {
-				tk.LogIt(tk.LogError, "[NLP] TVlan Port %v, v(%v), %v, %v, %v %s failed\n", name, vid, ifMac, state, mtu, mod)
-				fmt.Println(err)
+				tk.LogIt(tk.LogError, "nlp: TVlan Port %v, v(%v), %v, %v, %v %s failed: %v\n", name, vid, ifMac, state, mtu, mod, err)
 			} else {
-				tk.LogIt(tk.LogInfo, "[NLP] TVlan Port %v, v(%v), %v, %v, %v %s OK\n", name, vid, ifMac, state, mtu, mod)
+				tk.LogIt(tk.LogInfo, "nlp: TVlan Port %v, v(%v), %v, %v, %v %s OK\n", name, vid, ifMac, state, mtu, mod)
 			}
 			applyConfigMap(name, state, add)
 			return ret
 		} else {
 			mif, err := nlp.LinkByIndex(attrs.MasterIndex)
 			if err != nil {
-				fmt.Println(err)
+				tk.LogIt(tk.LogError, "nlp: Failed to find link by master: %v\n", err)
 				return -1
 			} else {
 				if _, ok := mif.(*nlp.Bond); ok {
@@ -804,14 +870,14 @@ func ModLink(link nlp.Link, add bool) int {
 		tunId = vxlan.VxlanId
 		uif, err := nlp.LinkByIndex(vxlan.VtepDevIndex)
 		if err != nil {
-			fmt.Println(err)
+			tk.LogIt(tk.LogError, "nlp: Failed to find VxLAN link: %v\n", err)
 			return -1
 		}
 		real = uif.Attrs().Name
-		tk.LogIt(tk.LogInfo, "[NLP] Port %v, uif %v %s\n", name, real, mod)
+		tk.LogIt(tk.LogInfo, "nlp: Port %v, uif %v %s\n", name, real, mod)
 	} else if _, ok := link.(*nlp.Bond); ok {
 		pType = cmn.PortBond
-		tk.LogIt(tk.LogInfo, "[NLP] Bond %v, %s\n", name, mod)
+		tk.LogIt(tk.LogInfo, "nlp: Bond %v, %s\n", name, mod)
 	} else if iptun, ok := link.(*nlp.Iptun); ok {
 		pType = cmn.PortIPTun
 		if iptun.Remote == nil || iptun.Local == nil {
@@ -824,7 +890,20 @@ func ModLink(link nlp.Link, add bool) int {
 		tunId = 1 // Just needed internally
 		tunDst = iptun.Remote
 		tunSrc = iptun.Local
-		tk.LogIt(tk.LogInfo, "[NLP] IPTun %v (%s:%s), %s\n", name, tunSrc.String(), tunDst.String(), mod)
+		tk.LogIt(tk.LogInfo, "nlp: IPTun %v (%s:%s), %s\n", name, tunSrc.String(), tunDst.String(), mod)
+	} else if vtiTun, ok := link.(*nlp.Vti); ok {
+		pType = cmn.PortVti
+		if vtiTun.Remote == nil || vtiTun.Local == nil {
+			return -1
+		}
+
+		if vtiTun.Remote.IsUnspecified() || vtiTun.Local.IsUnspecified() {
+			return -1
+		}
+		tunId = int(vtiTun.OKey)
+		tunDst = vtiTun.Remote
+		tunSrc = vtiTun.Local
+		tk.LogIt(tk.LogInfo, "nlp: VTITun %v (%s:%s), %s\n", name, tunSrc.String(), tunDst.String(), mod)
 	} else if master != "" {
 		pType = cmn.PortBondSif
 	}
@@ -834,19 +913,19 @@ func ModLink(link nlp.Link, add bool) int {
 			Link: linkState, State: state, Mtu: mtu, Master: master, Real: real,
 			TunID: tunId, TunDst: tunDst, TunSrc: tunSrc})
 		if err != nil {
-			tk.LogIt(tk.LogError, "[NLP] Port %v, %v, %v, %v add failed\n", name, ifMac, state, mtu)
-			fmt.Println(err)
+			if !strings.Contains(err.Error(), "port exists") {
+				tk.LogIt(tk.LogError, "nlp: Port %v, %v, %v, %v add failed (%s)\n", name, ifMac, state, mtu, err)
+			}
 		} else {
-			tk.LogIt(tk.LogInfo, "[NLP] Port %v, %v, %v, %v add [OK]\n", name, ifMac, state, mtu)
+			tk.LogIt(tk.LogInfo, "nlp: Port %v, %v, %v, %v add [OK]\n", name, ifMac, state, mtu)
 		}
 		applyConfigMap(name, state, add)
 	} else if attrs.MasterIndex == 0 {
 		ret, err = hooks.NetPortDel(&cmn.PortMod{Dev: name, Ptype: pType})
 		if err != nil {
-			tk.LogIt(tk.LogError, "[NLP] Port %v, %v, %v, %v delete failed\n", name, ifMac, state, mtu)
-			fmt.Println(err)
+			tk.LogIt(tk.LogError, "nlp: Port %v, %v, %v, %v delete failed (%s)\n", name, ifMac, state, mtu, err)
 		} else {
-			tk.LogIt(tk.LogInfo, "[NLP] Port %v, %v, %v, %v delete [OK]\n", name, ifMac, state, mtu)
+			tk.LogIt(tk.LogInfo, "nlp: Port %v, %v, %v, %v delete [OK]\n", name, ifMac, state, mtu)
 		}
 
 		applyConfigMap(name, state, add)
@@ -861,10 +940,9 @@ func ModLink(link nlp.Link, add bool) int {
 			ret, err = hooks.NetVlanPortDel(&cmn.VlanPortMod{Vid: vid, Dev: name, Tagged: false})
 		}
 		if err != nil {
-			tk.LogIt(tk.LogError, "[NLP] Vlan(%v) Port %v, %v, %v, %v %s failed\n", vid, name, ifMac, state, mtu, mod)
-			fmt.Println(err)
+			tk.LogIt(tk.LogError, "nlp: Vlan(%v) Port %v, %v, %v, %v %s failed: %v\n", vid, name, ifMac, state, mtu, mod, err)
 		} else {
-			tk.LogIt(tk.LogInfo, "[NLP] Vlan(%v) Port %v, %v, %v, %v %s [OK]\n", vid, name, ifMac, state, mtu, mod)
+			tk.LogIt(tk.LogInfo, "nlp: Vlan(%v) Port %v, %v, %v, %v %s [OK]\n", vid, name, ifMac, state, mtu, mod)
 		}
 		if (add && (err != nil)) || !add {
 			applyConfigMap(name, state, add)
@@ -882,10 +960,10 @@ func AddAddr(addr nlp.Addr, link nlp.Link) int {
 
 	ret, err := hooks.NetAddrAdd(&cmn.IPAddrMod{Dev: name, IP: ipStr})
 	if err != nil {
-		tk.LogIt(tk.LogError, "[NLP] IPv4 Address %v Port %v failed %v\n", ipStr, name, err)
+		tk.LogIt(tk.LogError, "nlp: IPv4 Address %v Port %v failed %v\n", ipStr, name, err)
 		ret = -1
 	} else {
-		tk.LogIt(tk.LogInfo, "[NLP] IPv4 Address %v Port %v added\n", ipStr, name)
+		tk.LogIt(tk.LogInfo, "nlp: IPv4 Address %v Port %v added\n", ipStr, name)
 	}
 	return ret
 }
@@ -894,17 +972,21 @@ func AddAddrNoHook(address, ifName string) int {
 	var ret int
 	IfName, err := nlp.LinkByName(ifName)
 	if err != nil {
-		tk.LogIt(tk.LogWarning, "[NLP] Port %s find Fail\n", ifName)
-		return -1
+		_, err := hooks.NetAddrAdd(&cmn.IPAddrMod{Dev: ifName, IP: address})
+		if err != nil {
+			tk.LogIt(tk.LogWarning, "nlp: Hook IPv4 Address %v Port %v Add Fail\n", address, ifName)
+			return -1
+		}
+		return 0
 	}
 	Address, err := nlp.ParseAddr(address)
 	if err != nil {
-		tk.LogIt(tk.LogWarning, "[NLP] IPv4 Address %s Parse Fail\n", address)
+		tk.LogIt(tk.LogWarning, "nlp: IPv4 Address %s Parse Fail\n", address)
 		return -1
 	}
 	err = nlp.AddrAdd(IfName, Address)
 	if err != nil {
-		tk.LogIt(tk.LogWarning, "[NLP] IPv4 Address %v Port %v added Fail\n", address, ifName)
+		tk.LogIt(tk.LogWarning, "nlp: IPv4 Address %v Port %v added Fail\n", address, ifName)
 		return -1
 	}
 	return ret
@@ -914,17 +996,21 @@ func DelAddrNoHook(address, ifName string) int {
 	var ret int
 	IfName, err := nlp.LinkByName(ifName)
 	if err != nil {
-		tk.LogIt(tk.LogWarning, "[NLP] Port %s find Fail\n", ifName)
-		return -1
+		_, err := hooks.NetAddrDel(&cmn.IPAddrMod{Dev: ifName, IP: address})
+		if err != nil {
+			tk.LogIt(tk.LogWarning, "nlp: Hook IPv4 Address %v Port %v delete Fail\n", address, ifName)
+			return -1
+		}
+		return 0
 	}
 	Address, err := nlp.ParseAddr(address)
 	if err != nil {
-		tk.LogIt(tk.LogWarning, "[NLP] IPv4 Address %s Parse Fail\n", address)
+		tk.LogIt(tk.LogWarning, "nlp: IPv4 Address %s Parse Fail\n", address)
 		return -1
 	}
 	err = nlp.AddrDel(IfName, Address)
 	if err != nil {
-		tk.LogIt(tk.LogWarning, "[NLP] IPv4 Address %v Port %v delete Fail\n", address, ifName)
+		tk.LogIt(tk.LogWarning, "nlp: IPv4 Address %v Port %v delete Fail\n", address, ifName)
 		return -1
 	}
 	return ret
@@ -962,11 +1048,11 @@ func AddNeigh(neigh nlp.Neigh, link nlp.Link) int {
 			State:        neigh.State,
 			HardwareAddr: neigh.HardwareAddr})
 		if err != nil {
-			tk.LogIt(tk.LogError, "[NLP] NH %v mac %v dev %v add failed %v\n", neigh.IP.String(), mac,
+			tk.LogIt(tk.LogError, "nlp: NH %v mac %v dev %v add failed %v\n", neigh.IP.String(), mac,
 				name, err)
 
 		} /*else {
-			tk.LogIt(tk.LogInfo, "[NLP] NH %v mac %v dev %v added\n", neigh.IP.String(), mac, name)
+			tk.LogIt(tk.LogInfo, "nlp: NH %v mac %v dev %v added\n", neigh.IP.String(), mac, name)
 		} */
 	} else if neigh.Family == unix.AF_BRIDGE {
 		if neigh.Vlan == 1 {
@@ -982,7 +1068,7 @@ func AddNeigh(neigh nlp.Neigh, link nlp.Link) int {
 		if neigh.MasterIndex > 0 {
 			brLink, err := nlp.LinkByIndex(neigh.MasterIndex)
 			if err != nil {
-				fmt.Println(err)
+				tk.LogIt(tk.LogError, "nlp: Failed to find link by master: %v\n", err)
 				return -1
 			}
 
@@ -992,6 +1078,14 @@ func AddNeigh(neigh nlp.Neigh, link nlp.Link) int {
 				return 0
 			}
 			brId, _ = strconv.Atoi(strings.Join(re.FindAllString(brLink.Attrs().Name, -1), " "))
+			// Dirty hack to support docker bridge
+			if brId == 0 {
+				if brLink.Attrs().Name == "docker0" {
+					brId = 4090
+				} else if brLink.Attrs().Name == "cni0" {
+					brId = 4091
+				}
+			}
 		}
 
 		if vxlan, ok := link.(*nlp.Vxlan); ok {
@@ -1001,7 +1095,7 @@ func AddNeigh(neigh nlp.Neigh, link nlp.Link) int {
 				brId = vxlan.VxlanId
 				ftype = cmn.FdbTun
 			} else {
-				tk.LogIt(tk.LogInfo, "[NLP] L2fdb %v brId %v dst %v dev %v IGNORED\n", mac[:], brId, dst, name)
+				tk.LogIt(tk.LogInfo, "nlp: L2fdb %v brId %v dst %v dev %v IGNORED\n", mac[:], brId, dst, name)
 				return 0
 			}
 		} else {
@@ -1012,9 +1106,9 @@ func AddNeigh(neigh nlp.Neigh, link nlp.Link) int {
 		ret, err = hooks.NetFdbAdd(&cmn.FdbMod{MacAddr: mac, BridgeID: brId, Dev: name, Dst: dst,
 			Type: ftype})
 		if err != nil {
-			tk.LogIt(tk.LogError, "[NLP] L2fdb %v brId %v dst %v dev %v add failed\n", mac[:], brId, dst, name)
+			tk.LogIt(tk.LogError, "nlp: L2fdb %v brId %v dst %v dev %v add failed\n", mac[:], brId, dst, name)
 		} else {
-			tk.LogIt(tk.LogInfo, "[NLP] L2fdb %v brId %v dst %v dev %v added\n", mac[:], brId, dst, name)
+			tk.LogIt(tk.LogInfo, "nlp: L2fdb %v brId %v dst %v dev %v added\n", mac[:], brId, dst, name)
 		}
 	}
 
@@ -1037,12 +1131,12 @@ func DelNeigh(neigh nlp.Neigh, link nlp.Link) int {
 	if neigh.Family == unix.AF_INET ||
 		neigh.Family == unix.AF_INET6 {
 
-		ret, err = hooks.NetNeighDel(&cmn.NeighMod{IP: neigh.IP})
+		ret, err = hooks.NetNeighDel(&cmn.NeighMod{IP: neigh.IP, LinkIndex: neigh.LinkIndex})
 		if err != nil {
-			tk.LogIt(tk.LogError, "[NLP] NH  %v %v del failed\n", neigh.IP.String(), name)
+			tk.LogIt(tk.LogError, "nlp: NH  %v %v del failed\n", neigh.IP.String(), name)
 			ret = -1
 		} else {
-			tk.LogIt(tk.LogInfo, "[NLP] NH %v %v deleted\n", neigh.IP.String(), name)
+			tk.LogIt(tk.LogInfo, "nlp: NH %v %v deleted\n", neigh.IP.String(), name)
 		}
 
 	} else {
@@ -1064,7 +1158,7 @@ func DelNeigh(neigh nlp.Neigh, link nlp.Link) int {
 		if neigh.MasterIndex > 0 {
 			brLink, err := nlp.LinkByIndex(neigh.MasterIndex)
 			if err != nil {
-				fmt.Println(err)
+				tk.LogIt(tk.LogError, "nlp: Failed to find link by master: %v\n", err)
 				return -1
 			}
 
@@ -1079,6 +1173,14 @@ func DelNeigh(neigh nlp.Neigh, link nlp.Link) int {
 				return 0
 			}
 			brId, _ = strconv.Atoi(strings.Join(re.FindAllString(brLink.Attrs().Name, -1), " "))
+			// Dirty hack to support docker bridge
+			if brId == 0 {
+				if brLink.Attrs().Name == "docker0" {
+					brId = 4090
+				} else if brLink.Attrs().Name == "cni0" {
+					brId = 4091
+				}
+			}
 		}
 
 		if vxlan, ok := link.(*nlp.Vxlan); ok {
@@ -1095,10 +1197,10 @@ func DelNeigh(neigh nlp.Neigh, link nlp.Link) int {
 
 		ret, err = hooks.NetFdbDel(&cmn.FdbMod{MacAddr: mac, BridgeID: brId})
 		if err != nil {
-			tk.LogIt(tk.LogError, "[NLP] L2fdb %v brId %v dst %s dev %v delete failed %v\n", mac[:], brId, dst, name, err)
+			tk.LogIt(tk.LogError, "nlp: L2fdb %v brId %v dst %s dev %v delete failed %v\n", mac[:], brId, dst, name, err)
 			ret = -1
 		} else {
-			tk.LogIt(tk.LogInfo, "[NLP] L2fdb %v brId %v dst %s dev %v deleted\n", mac[:], brId, dst, name)
+			tk.LogIt(tk.LogInfo, "nlp: L2fdb %v brId %v dst %s dev %v deleted\n", mac[:], brId, dst, name)
 		}
 	}
 	return ret
@@ -1106,37 +1208,61 @@ func DelNeigh(neigh nlp.Neigh, link nlp.Link) int {
 
 func AddRoute(route nlp.Route) int {
 	var ipNet net.IPNet
+
+	if route.Table < 254 {
+		return -1
+	}
+
 	if route.Dst == nil {
-		r := net.IPv4(0, 0, 0, 0)
-		m := net.CIDRMask(0, 32)
-		r = r.Mask(m)
-		ipNet = net.IPNet{IP: r, Mask: m}
+		if route.Family == 2 {
+			r := net.IPv4(0, 0, 0, 0)
+			m := net.CIDRMask(0, 32)
+			r = r.Mask(m)
+			ipNet = net.IPNet{IP: r, Mask: m}
+		} else if route.Family == 10 {
+			r := net.ParseIP("::")
+			m := net.CIDRMask(0, 128)
+			r = r.Mask(m)
+			ipNet = net.IPNet{IP: r, Mask: m}
+		} else {
+			return -1
+		}
 	} else {
 		ipNet = *route.Dst
 	}
 
-	ret, err := hooks.NetRouteAdd(&cmn.RouteMod{Protocol: int(route.Protocol), Flags: route.Flags,
-		Gw: route.Gw, LinkIndex: route.LinkIndex, Dst: ipNet})
+	var gws []cmn.GWInfo
+
+	if len(route.MultiPath) <= 0 {
+		gw := cmn.GWInfo{Gw: route.Gw, LinkIndex: route.LinkIndex}
+		gws = append(gws, gw)
+	} else {
+		for i := range route.MultiPath {
+			gws = append(gws, cmn.GWInfo{Gw: route.MultiPath[i].Gw, LinkIndex: route.MultiPath[i].LinkIndex})
+		}
+	}
+
+	ret, err := hooks.NetRouteAdd(&cmn.RouteMod{Protocol: int(route.Protocol), Flags: route.Flags, Dst: ipNet, GWs: gws})
 	if err != nil {
 		if route.Gw != nil {
-			tk.LogIt(tk.LogError, "[NLP] RT  %s via %s proto %d add failed-%s\n", ipNet.String(),
+			tk.LogIt(tk.LogError, "nlp: RT  %s via %s proto %d add failed-%s\n", ipNet.String(),
 				route.Gw.String(), route.Protocol, err)
 		} else {
-			tk.LogIt(tk.LogError, "[NLP] RT  %s add failed-%s\n", ipNet.String(), err)
+			tk.LogIt(tk.LogError, "nlp: RT  %s add failed-%s\n", ipNet.String(), err)
 		}
 	} else {
 		if route.Gw != nil {
-			tk.LogIt(tk.LogInfo, "[NLP] RT  %s via %s added\n", ipNet.String(),
+			tk.LogIt(tk.LogInfo, "nlp: RT  %s via %s added\n", ipNet.String(),
 				route.Gw.String())
 		} else {
-			tk.LogIt(tk.LogInfo, "[NLP] RT  %s added\n", ipNet.String())
+			tk.LogIt(tk.LogInfo, "nlp: RT  %s added\n", ipNet.String())
 		}
 	}
 
 	return ret
 }
 
-func AddRouteNoHook(DestinationIPNet, gateway string) int {
+func AddRouteNoHook(DestinationIPNet, gateway, proto string) int {
 	var ret int
 	var route nlp.Route
 	_, Ipnet, err := net.ParseCIDR(DestinationIPNet)
@@ -1146,11 +1272,42 @@ func AddRouteNoHook(DestinationIPNet, gateway string) int {
 	Gw := net.ParseIP(gateway)
 	route.Dst = Ipnet
 	route.Gw = Gw
+
+	if proto == "static" {
+		route.Protocol = unix.RTPROT_STATIC
+	}
 	err = nlp.RouteAdd(&route)
 	if err != nil {
 		return -1
 	}
 	return ret
+}
+
+func GetRouteNoHook(destination string) ([]string, string, error) {
+	var gws []string
+	var src string
+
+	dst := net.ParseIP(destination)
+	if dst == nil {
+		return []string{}, "", errors.New("invalid destination")
+	}
+
+	rts, err := nlp.RouteGet(dst)
+	if err != nil {
+		return []string{}, "", errors.New("invalid rt destination")
+	}
+
+	for _, rt := range rts {
+		if rt.Table < 254 {
+			continue
+		}
+		if src == "" {
+			src = rt.Src.String()
+		}
+		gws = append(gws, rt.Gw.String())
+	}
+
+	return gws, src, nil
 }
 
 func DelRouteNoHook(DestinationIPNet string) int {
@@ -1171,6 +1328,11 @@ func DelRouteNoHook(DestinationIPNet string) int {
 func DelRoute(route nlp.Route) int {
 	var ret int
 	var ipNet net.IPNet
+
+	if route.Table < 254 {
+		return -1
+	}
+
 	if route.Dst == nil {
 		r := net.IPv4(0, 0, 0, 0)
 		m := net.CIDRMask(0, 32)
@@ -1182,17 +1344,17 @@ func DelRoute(route nlp.Route) int {
 	ret, err := hooks.NetRouteDel(&cmn.RouteMod{Dst: ipNet})
 	if err != nil {
 		if route.Gw != nil {
-			tk.LogIt(tk.LogError, "[NLP] RT  %s via %s delete failed-%s\n", ipNet.String(),
+			tk.LogIt(tk.LogError, "nlp: RT  %s via %s delete failed-%s\n", ipNet.String(),
 				route.Gw.String(), err)
 		} else {
-			tk.LogIt(tk.LogError, "[NLP] RT  %s delete failed-%s\n", ipNet.String(), err)
+			tk.LogIt(tk.LogError, "nlp: RT  %s delete failed-%s\n", ipNet.String(), err)
 		}
 	} else {
 		if route.Gw != nil {
-			tk.LogIt(tk.LogInfo, "[NLP] RT  %s via %s deleted\n", ipNet.String(),
+			tk.LogIt(tk.LogInfo, "nlp: RT  %s via %s deleted\n", ipNet.String(),
 				route.Gw.String())
 		} else {
-			tk.LogIt(tk.LogInfo, "[NLP] RT  %s deleted\n", ipNet.String())
+			tk.LogIt(tk.LogInfo, "nlp: RT  %s deleted\n", ipNet.String())
 		}
 	}
 	return ret
@@ -1201,7 +1363,7 @@ func DelRoute(route nlp.Route) int {
 func LUWorkSingle(m nlp.LinkUpdate) int {
 	var ret int
 
-	if iSBlackListedIntf(m.Link.Attrs().Name, m.Link.Attrs().MasterIndex) {
+	if NlpIsBlackListedIntf(m.Link.Attrs().Name, m.Link.Attrs().MasterIndex) {
 		return -1
 	}
 
@@ -1213,32 +1375,30 @@ func AUWorkSingle(m nlp.AddrUpdate) int {
 	var ret int
 	link, err := nlp.LinkByIndex(m.LinkIndex)
 	if err != nil {
-		fmt.Println(err)
+		tk.LogIt(tk.LogError, "nlp: AUWorkSingle: link find error: %v\n", err)
 		return -1
 	}
 
-	if iSBlackListedIntf(link.Attrs().Name, link.Attrs().MasterIndex) {
-		return -1
-	}
+	//if iSBlackListedIntf(link.Attrs().Name, link.Attrs().MasterIndex) {
+	//	return -1
+	//}
 
 	attrs := link.Attrs()
 	name := attrs.Name
 	if m.NewAddr {
 		_, err := hooks.NetAddrAdd(&cmn.IPAddrMod{Dev: name, IP: m.LinkAddress.String()})
 		if err != nil {
-			tk.LogIt(tk.LogInfo, "[NLP] Address %v Port %v add failed\n", m.LinkAddress.String(), name)
-			fmt.Println(err)
+			tk.LogIt(tk.LogWarning, "nlp: Address %v Port %v add failed: %v\n", m.LinkAddress.String(), name, err)
 		} else {
-			tk.LogIt(tk.LogInfo, "[NLP] Address %v Port %v added\n", m.LinkAddress.String(), name)
+			tk.LogIt(tk.LogInfo, "nlp: Address %v Port %v added\n", m.LinkAddress.String(), name)
 		}
 
 	} else {
 		_, err := hooks.NetAddrDel(&cmn.IPAddrMod{Dev: name, IP: m.LinkAddress.String()})
 		if err != nil {
-			tk.LogIt(tk.LogInfo, "[NLP] Address %v Port %v delete failed\n", m.LinkAddress.String(), name)
-			fmt.Println(err)
+			tk.LogIt(tk.LogWarning, "nlp: Address %v Port %v delete failed: %v\n", m.LinkAddress.String(), name, err)
 		} else {
-			tk.LogIt(tk.LogInfo, "[NLP] Address %v Port %v deleted\n", m.LinkAddress.String(), name)
+			tk.LogIt(tk.LogInfo, "nlp: Address %v Port %v deleted\n", m.LinkAddress.String(), name)
 		}
 	}
 
@@ -1250,11 +1410,11 @@ func NUWorkSingle(m nlp.NeighUpdate) int {
 
 	link, err := nlp.LinkByIndex(m.LinkIndex)
 	if err != nil {
-		fmt.Println(err)
+		tk.LogIt(tk.LogError, "nlp: NUWorkSingle: link find error: %v\n", err)
 		return -1
 	}
 
-	if iSBlackListedIntf(link.Attrs().Name, link.Attrs().MasterIndex) {
+	if NlpIsBlackListedIntf(link.Attrs().Name, link.Attrs().MasterIndex) {
 		return -1
 	}
 
@@ -1272,14 +1432,34 @@ func NUWorkSingle(m nlp.NeighUpdate) int {
 func RUWorkSingle(m nlp.RouteUpdate) int {
 	var ret int
 
-	link, err := nlp.LinkByIndex(m.LinkIndex)
-	if err != nil {
-		fmt.Println(err)
-		return -1
+	if len(m.MultiPath) <= 0 {
+		link, err := nlp.LinkByIndex(m.LinkIndex)
+		if err != nil {
+			tk.LogIt(tk.LogError, "nlp: RUWorkSingle: link find error %v\n", err)
+			return -1
+		}
+
+		if NlpIsBlackListedIntf(link.Attrs().Name, link.Attrs().MasterIndex) {
+			return -1
+		}
+	} else {
+		for _, path := range m.MultiPath {
+			link, err := nlp.LinkByIndex(path.LinkIndex)
+			if err != nil {
+				tk.LogIt(tk.LogError, "nlp: RUWorkSingle: link find error %v\n", err)
+				return -1
+			}
+
+			if NlpIsBlackListedIntf(link.Attrs().Name, link.Attrs().MasterIndex) {
+				return -1
+			}
+		}
 	}
 
-	if iSBlackListedIntf(link.Attrs().Name, link.Attrs().MasterIndex) {
-		return -1
+	if skipIfRoute {
+		if m.Route.Scope.String() == "link" && tk.IsNetIPv4(m.Dst.IP.String()) {
+			return -1
+		}
 	}
 
 	if m.Type == syscall.RTM_NEWROUTE {
@@ -1293,7 +1473,7 @@ func RUWorkSingle(m nlp.RouteUpdate) int {
 
 func LUWorker(ch chan nlp.LinkUpdate, f chan struct{}) {
 
-	for n := 0; n < cmn.LuWorkQLen; n++ {
+	for n := 0; n < 32; n++ {
 		select {
 		case m := <-ch:
 			LUWorkSingle(m)
@@ -1305,7 +1485,7 @@ func LUWorker(ch chan nlp.LinkUpdate, f chan struct{}) {
 
 func AUWorker(ch chan nlp.AddrUpdate, f chan struct{}) {
 
-	for n := 0; n < cmn.AuWorkqLen; n++ {
+	for n := 0; n < 64; n++ {
 		select {
 		case m := <-ch:
 			AUWorkSingle(m)
@@ -1318,7 +1498,7 @@ func AUWorker(ch chan nlp.AddrUpdate, f chan struct{}) {
 
 func NUWorker(ch chan nlp.NeighUpdate, f chan struct{}) {
 
-	for n := 0; n < cmn.NuWorkQLen; n++ {
+	for n := 0; n < 128; n++ {
 		select {
 		case m := <-ch:
 			NUWorkSingle(m)
@@ -1330,7 +1510,7 @@ func NUWorker(ch chan nlp.NeighUpdate, f chan struct{}) {
 
 func RUWorker(ch chan nlp.RouteUpdate, f chan struct{}) {
 
-	for n := 0; n < cmn.RuWorkQLen; n++ {
+	for n := 0; n < 128; n++ {
 		select {
 		case m := <-ch:
 			RUWorkSingle(m)
@@ -1340,7 +1520,18 @@ func RUWorker(ch chan nlp.RouteUpdate, f chan struct{}) {
 	}
 }
 
-func NLWorker(nNl *NlH, bgpPeerMode bool) {
+func NLWorker(nNl *NlH, bgpPeerMode bool, ch chan bool, wch chan bool) {
+	ch <- true
+	<-wch
+
+	defer func() {
+		if e := recover(); e != nil {
+			tk.LogIt(tk.LogCritical, "nlp: %s: %s\n", e, debug.Stack())
+		}
+		hooks.NetHandlePanic()
+		os.Exit(1)
+	}()
+
 	if bgpPeerMode {
 		for { /* Single thread for reading route NL msgs in below order */
 			RUWorker(nNl.FromRUCh, nNl.FromRUDone)
@@ -1352,7 +1543,7 @@ func NLWorker(nNl *NlH, bgpPeerMode bool) {
 			AUWorker(nNl.FromAUCh, nNl.FromAUDone)
 			NUWorker(nNl.FromNUCh, nNl.FromNUDone)
 			RUWorker(nNl.FromRUCh, nNl.FromRUDone)
-			time.Sleep(1000 * time.Millisecond)
+			time.Sleep(500 * time.Millisecond)
 		}
 	}
 }
@@ -1363,7 +1554,7 @@ func GetBridges() {
 		return
 	}
 	for _, link := range links {
-		if iSBlackListedIntf(link.Attrs().Name, link.Attrs().MasterIndex) {
+		if NlpIsBlackListedIntf(link.Attrs().Name, link.Attrs().MasterIndex) {
 			continue
 		}
 		switch link.(type) {
@@ -1377,24 +1568,45 @@ func GetBridges() {
 
 func NlpGet(ch chan bool) int {
 	var ret int
-	tk.LogIt(tk.LogInfo, "[NLP] Getting device info\n")
+	tk.LogIt(tk.LogInfo, "nlp: Getting device info\n")
 
 	GetBridges()
 
 	links, err := nlp.LinkList()
 	if err != nil {
-		tk.LogIt(tk.LogError, "[NLP] Error in getting device info(%v)\n", err)
+		tk.LogIt(tk.LogError, "nlp: Error in getting device info(%v)\n", err)
 		ret = -1
 	}
 
 	for _, link := range links {
 
-		if iSBlackListedIntf(link.Attrs().Name, link.Attrs().MasterIndex) {
+		if NlpIsBlackListedIntf(link.Attrs().Name, link.Attrs().MasterIndex) {
 			continue
 		}
 
 		ret = ModLink(link, true)
 		if ret == -1 {
+			continue
+		}
+	}
+
+	for _, link := range links {
+
+		if NlpIsBlackListedIntf(link.Attrs().Name, link.Attrs().MasterIndex) {
+			// Need addresss to work with
+			addrs, err := nlp.AddrList(link, nlp.FAMILY_ALL)
+			if err != nil {
+				tk.LogIt(tk.LogError, "nlp: Error getting address list %v for intf %s\n",
+					err, link.Attrs().Name)
+			}
+
+			if len(addrs) == 0 {
+				tk.LogIt(tk.LogDebug, "nlp: No addresses found for intf %s\n", link.Attrs().Name)
+			} else {
+				for _, addr := range addrs {
+					AddAddr(addr, link)
+				}
+			}
 			continue
 		}
 
@@ -1403,12 +1615,12 @@ func NlpGet(ch chan bool) int {
 		if link.Attrs().MasterIndex > 0 || ok {
 			neighs, err := nlp.NeighList(link.Attrs().Index, unix.AF_BRIDGE)
 			if err != nil {
-				tk.LogIt(tk.LogError, "[NLP] Error getting neighbors list %v for intf %s\n",
+				tk.LogIt(tk.LogError, "nlp: Error getting neighbors list %v for intf %s\n",
 					err, link.Attrs().Name)
 			}
 
 			if len(neighs) == 0 {
-				tk.LogIt(tk.LogDebug, "[NLP] No FDBs found for intf %s\n", link.Attrs().Name)
+				tk.LogIt(tk.LogDebug, "nlp: No FDBs found for intf %s\n", link.Attrs().Name)
 			} else {
 				for _, neigh := range neighs {
 					AddNeigh(neigh, link)
@@ -1418,12 +1630,12 @@ func NlpGet(ch chan bool) int {
 
 		addrs, err := nlp.AddrList(link, nlp.FAMILY_ALL)
 		if err != nil {
-			tk.LogIt(tk.LogError, "[NLP] Error getting address list %v for intf %s\n",
+			tk.LogIt(tk.LogError, "nlp: Error getting address list %v for intf %s\n",
 				err, link.Attrs().Name)
 		}
 
 		if len(addrs) == 0 {
-			tk.LogIt(tk.LogDebug, "[NLP] No addresses found for intf %s\n", link.Attrs().Name)
+			tk.LogIt(tk.LogDebug, "nlp: No addresses found for intf %s\n", link.Attrs().Name)
 		} else {
 			for _, addr := range addrs {
 				AddAddr(addr, link)
@@ -1432,33 +1644,42 @@ func NlpGet(ch chan bool) int {
 
 		neighs, err := nlp.NeighList(link.Attrs().Index, nlp.FAMILY_ALL)
 		if err != nil {
-			tk.LogIt(tk.LogError, "[NLP] Error getting neighbors list %v for intf %s\n",
+			tk.LogIt(tk.LogError, "nlp: Error getting neighbors list %v for intf %s\n",
 				err, link.Attrs().Name)
 		}
 
 		if len(neighs) == 0 {
-			tk.LogIt(tk.LogDebug, "[NLP] No neighbors found for intf %s\n", link.Attrs().Name)
+			tk.LogIt(tk.LogDebug, "nlp: No neighbors found for intf %s\n", link.Attrs().Name)
 		} else {
 			for _, neigh := range neighs {
 				AddNeigh(neigh, link)
 			}
 		}
+	}
 
-		/* Get Routes */
-		routes, err := nlp.RouteList(link, nlp.FAMILY_ALL)
-		if err != nil {
-			tk.LogIt(tk.LogError, "[NLP] Error getting route list %v\n", err)
-		}
+	/* Get Routes */
+	routes, err := nlp.RouteList(nil, nlp.FAMILY_ALL)
+	if err != nil {
+		tk.LogIt(tk.LogError, "nlp: Error getting route list %v\n", err)
+	}
 
-		if len(routes) == 0 {
-			tk.LogIt(tk.LogDebug, "[NLP] No STATIC routes found for intf %s\n", link.Attrs().Name)
-		} else {
-			for _, route := range routes {
-				AddRoute(route)
+	if len(routes) == 0 {
+		tk.LogIt(tk.LogDebug, "nlp: No STATIC routes found\n")
+	} else {
+		for _, route := range routes {
+			var m nlp.RouteUpdate
+			if skipIfRoute {
+				if route.Scope.String() == "link" && tk.IsNetIPv4(route.Dst.IP.String()) {
+					continue
+				}
 			}
+			m.Type = syscall.RTM_NEWROUTE
+			m.Route = route
+
+			RUWorkSingle(m)
 		}
 	}
-	tk.LogIt(tk.LogInfo, "[NLP] nlp get done\n")
+	tk.LogIt(tk.LogInfo, "nlp: nlp get done\n")
 	ch <- true
 	return ret
 }
@@ -1469,74 +1690,77 @@ func LbSessionGet(done bool) int {
 
 	if done {
 
-		if _, err := os.Stat("/etc/loxilb/EPconfig.txt"); errors.Is(err, os.ErrNotExist) {
+		if _, err := os.Stat(opt.Opts.ConfigPath + "/EPconfig.txt"); errors.Is(err, os.ErrNotExist) {
 			if err != nil {
-				tk.LogIt(tk.LogInfo, "[NLP] No EndPoint config file : %s \n", err.Error())
+				tk.LogIt(tk.LogInfo, "nlp: Continuing without EP config file: %s\n", err.Error())
 			}
 		} else {
 			applyEPConfig()
 		}
-		tk.LogIt(tk.LogInfo, "[NLP] EndPoint done\n")
+		tk.LogIt(tk.LogInfo, "nlp: EndPoint config process done\n")
 
-		if _, err := os.Stat("/etc/loxilb/lbconfig.txt"); errors.Is(err, os.ErrNotExist) {
+		if _, err := os.Stat(opt.Opts.ConfigPath + "/lbconfig.txt"); errors.Is(err, os.ErrNotExist) {
 			if err != nil {
-				tk.LogIt(tk.LogInfo, "[NLP] No load balancer config file : %s \n", err.Error())
+				tk.LogIt(tk.LogInfo, "nlp: Continuing without LB config file : %s \n", err.Error())
 			}
 		} else {
 			applyLoadBalancerConfig()
 		}
+		tk.LogIt(tk.LogInfo, "nlp: LoadBalancer config done\n")
 
-		tk.LogIt(tk.LogInfo, "[NLP] LoadBalancer done\n")
-		if _, err := os.Stat("/etc/loxilb/sessionconfig.txt"); errors.Is(err, os.ErrNotExist) {
+		if _, err := os.Stat(opt.Opts.ConfigPath + "/sessionconfig.txt"); errors.Is(err, os.ErrNotExist) {
 			if err != nil {
-				tk.LogIt(tk.LogInfo, "[NLP] No Session config file : %s \n", err.Error())
+				tk.LogIt(tk.LogInfo, "nlp: Continuing without Session config file : %s \n", err.Error())
 			}
 		} else {
 			applySessionConfig()
 		}
+		tk.LogIt(tk.LogInfo, "nlp: Session config done\n")
 
-		tk.LogIt(tk.LogInfo, "[NLP] Session done\n")
-		if _, err := os.Stat("/etc/loxilb/sessionulclconfig.txt"); errors.Is(err, os.ErrNotExist) {
+		if _, err := os.Stat(opt.Opts.ConfigPath + "/sessionulclconfig.txt"); errors.Is(err, os.ErrNotExist) {
 			if err != nil {
-				tk.LogIt(tk.LogInfo, "[NLP] No UlCl config file : %s \n", err.Error())
+				tk.LogIt(tk.LogInfo, "nlp: Continuing without UlCl config file : %s \n", err.Error())
 			}
 		} else {
 			applyUlClConfig()
 		}
+		tk.LogIt(tk.LogInfo, "nlp: Session UlCl config done\n")
 
-		tk.LogIt(tk.LogInfo, "[NLP] Session UlCl done\n")
-		if _, err := os.Stat("/etc/loxilb/FWconfig.txt"); errors.Is(err, os.ErrNotExist) {
+		if _, err := os.Stat(opt.Opts.ConfigPath + "/FWconfig.txt"); errors.Is(err, os.ErrNotExist) {
 			if err != nil {
-				tk.LogIt(tk.LogInfo, "[NLP] No Firewall config file : %s \n", err.Error())
+				tk.LogIt(tk.LogInfo, "nlp: Continuing without Firewall config file : %s \n", err.Error())
 			}
 		} else {
 			applyFWConfig()
 		}
-		tk.LogIt(tk.LogInfo, "[NLP] Firewall done\n")
-
-		tk.LogIt(tk.LogInfo, "[NLP] LbSessionGet done\n")
+		tk.LogIt(tk.LogInfo, "nlp: Firewall config done\n")
 	}
 
 	return 0
 }
 
-func NlpInit(bgpPeerMode bool, blackList string) *NlH {
+func NlpInit(bgpPeerMode bool, blackList, whitelist string, ipvsCompat bool) *NlH {
 
 	nNl = new(NlH)
 
 	nNl.BlackList = blackList
 	nNl.BLRgx = regexp.MustCompile(blackList)
+	nNl.WhiteList = whitelist
+	nNl.WLRgx = regexp.MustCompile(whitelist)
+	checkInit := make(chan bool)
+	waitInit := make(chan bool)
 
 	if bgpPeerMode {
 		nNl.FromRUCh = make(chan nlp.RouteUpdate, cmn.RuWorkQLen)
 		err := nlp.RouteSubscribe(nNl.FromRUCh, nNl.FromRUDone)
 		if err != nil {
-			fmt.Println(err)
+			tk.LogIt(tk.LogError, "nlp: Failed to subscribe to Route msgs: %v\n", err)
 		} else {
-			tk.LogIt(tk.LogInfo, "[NLP] Route msgs subscribed\n")
+			tk.LogIt(tk.LogInfo, "nlp: Route msgs subscribed\n")
 		}
 
-		go NLWorker(nNl, bgpPeerMode)
+		go NLWorker(nNl, bgpPeerMode, checkInit, waitInit)
+		<-checkInit
 		return nNl
 	}
 
@@ -1550,39 +1774,45 @@ func NlpInit(bgpPeerMode bool, blackList string) *NlH {
 	nNl.FromRUCh = make(chan nlp.RouteUpdate, cmn.RuWorkQLen)
 	nNl.IMap = make(map[string]Intf)
 
-	checkInit := make(chan bool)
-	go NlpGet(checkInit)
-	done := <-checkInit
+	go NLWorker(nNl, bgpPeerMode, checkInit, waitInit)
+	<-checkInit
 
 	err := nlp.LinkSubscribe(nNl.FromLUCh, nNl.FromLUDone)
 	if err != nil {
-		tk.LogIt(tk.LogError, "%v", err)
+		tk.LogIt(tk.LogError, "nlp: Failed to subscribe to Link msgs: %v\n", err)
 	} else {
-		tk.LogIt(tk.LogInfo, "[NLP] Link msgs subscribed\n")
+		tk.LogIt(tk.LogInfo, "nlp: Link msgs subscribed\n")
 	}
 	err = nlp.AddrSubscribe(nNl.FromAUCh, nNl.FromAUDone)
 	if err != nil {
-		fmt.Println(err)
+		tk.LogIt(tk.LogError, "nlp: Failed to subscribe to Address msgs: %v\n", err)
 	} else {
-		tk.LogIt(tk.LogInfo, "[NLP] Addr msgs subscribed\n")
+		tk.LogIt(tk.LogInfo, "nlp: Addr msgs subscribed\n")
 	}
 	err = nlp.NeighSubscribe(nNl.FromNUCh, nNl.FromNUDone)
 	if err != nil {
-		fmt.Println(err)
+		tk.LogIt(tk.LogError, "nlp: Failed to subscribe to Neighbor msgs: %v\n", err)
 	} else {
-		tk.LogIt(tk.LogInfo, "[NLP] Neigh msgs subscribed\n")
+		tk.LogIt(tk.LogInfo, "nlp: Neigh msgs subscribed\n")
 	}
 	err = nlp.RouteSubscribe(nNl.FromRUCh, nNl.FromRUDone)
 	if err != nil {
-		fmt.Println(err)
+		tk.LogIt(tk.LogError, "nlp: Failed to subscribe to Route msgs: %v\n", err)
 	} else {
-		tk.LogIt(tk.LogInfo, "[NLP] Route msgs subscribed\n")
+		tk.LogIt(tk.LogInfo, "nlp: Route msgs subscribed\n")
 	}
 
-	go NLWorker(nNl, bgpPeerMode)
-	tk.LogIt(tk.LogInfo, "[NLP] NLP Subscription done\n")
+	tk.LogIt(tk.LogInfo, "nlp: NLP Subscription done\n")
+
+	go NlpGet(checkInit)
+	done := <-checkInit
+	waitInit <- true
 
 	go LbSessionGet(done)
+
+	if ipvsCompat {
+		IPVSInit()
+	}
 
 	return nNl
 }
