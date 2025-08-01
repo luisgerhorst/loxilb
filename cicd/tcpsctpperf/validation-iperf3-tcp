@@ -18,19 +18,33 @@ cleanup() {
 
 trap cleanup EXIT
 
-$hexec l3ep1 \
-    taskset --cpu-list $threads-$(expr $threads + $threads - 1) \
-    iperf3 --server -p 12865 --json \
-    > "${dst}server.json" \
-    &
-# $! only gives use the pid of sudo.
+echo '{"error": "not tried yet"}' > "${dst}client.json"
+i=8
+while grep '"error":' "${dst}client.json"
+do
+    if [ $i -ge 32 ]
+    then
+        exit 1
+    fi
 
-sleep 1
+    sleep $i
 
-$hexec l3h1 \
-    taskset --cpu-list 0-$(expr $threads - 1) \
-    iperf3 -c 20.20.20.1 -t $time -p 12865 -P $threads --json \
-    > "${dst}client.json"
+    $hexec l3ep1 \
+        taskset --cpu-list $threads-$(expr $threads + $threads - 1) \
+        iperf3 --server -p 12865 --json \
+        | tee "${dst}server.json" &
+    # $! only gives use the pid of sudo.
 
-sudo pkill -SIGTERM iperf3
-wait
+    sleep $i
+
+    $hexec l3h1 \
+        taskset --cpu-list 0-$(expr $threads - 1) \
+        iperf3 -c 20.20.20.1 -t $time -p 12865 -P $threads --json \
+        --connect-timeout $((i*1000)) --snd-timeout $((i*1000)) \
+        | tee "${dst}client.json"
+
+    sudo pkill -SIGTERM iperf3
+    wait
+
+    i=$((i*2))
+done

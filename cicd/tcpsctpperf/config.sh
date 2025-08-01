@@ -10,6 +10,14 @@ echo "Spawning all hosts"
 echo "#########################################"
 
 spawn_docker_host --dock-type loxilb --dock-name llb1 --cpuset-cpus $(expr $(nproc) - 2)-$(expr $(nproc) - 1)
+
+set +x
+while ! docker exec -i llb1 bash -c 'cat /var/log/loxilb*.log' | grep 'tc: bpf attach OK for eth0'
+do
+  sleep 5
+done
+set -x
+
 spawn_docker_host --dock-type host --dock-name l3h1
 for i in $(seq 1 $OSE_LOXILB_SERVERS)
 do
@@ -63,3 +71,14 @@ do
 done
 
 $dexec llb1 loxicmd create lb 20.20.20.1 --tcp=14000:14000 --endpoints=$(seq --sep , --format '31.31.%g.1:1' 1 $OSE_LOXILB_SERVERS) >> /dev/null
+
+set +x
+while ! docker exec -i llb1 bash -c 'cat /var/log/loxilb*.log' | grep 'tc: bpf attach OK for ellb1l3h1'
+do
+  sleep 5
+done
+while ! docker exec -i llb1 bash -c 'cat /var/log/loxilb*.log' | grep 'tc: bpf attach OK for ellb1l3ep1'
+do
+  sleep 5
+done
+set -x
