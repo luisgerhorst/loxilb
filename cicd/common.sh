@@ -23,13 +23,13 @@ docker_extra_opts=""
 #fi
 
 
-if [ ! -d loxilb.io ]; then
-  ../common/minica --domains loxilb.io
-  mkdir cert
-  cp minica.pem cert/rootCA.crt
-  cp loxilb.io/cert.pem cert/server.crt
-  cp loxilb.io/key.pem cert/server.key
-fi
+# if [ ! -d loxilb.io ]; then
+#   ../common/minica --domains loxilb.io
+#   mkdir cert
+#   cp minica.pem cert/rootCA.crt
+#   cp loxilb.io/cert.pem cert/server.crt
+#   cp loxilb.io/key.pem cert/server.key
+# fi
 
 loxilbs=()
 
