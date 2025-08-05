@@ -21,7 +21,7 @@ trap cleanup EXIT
 $hexec l3ep1 \
     taskset --cpu-list $threads-$(expr $threads + $threads - 1) \
     iperf3 --server -p 13866 --json \
-    > "${dst}server.json" \
+    | tee "${dst}server.json" \
     &
 # $! only gives use the pid of sudo.
 
@@ -30,7 +30,7 @@ sleep 2
 $hexec l3h1 \
     taskset --cpu-list 0-$(expr $threads - 1) \
     iperf3 -c 20.20.20.1 -t $time -p 13866 -P $threads --sctp --json \
-    > "${dst}client.json"
+    | tee "${dst}client.json"
 
 sudo pkill -SIGTERM iperf3
 wait
