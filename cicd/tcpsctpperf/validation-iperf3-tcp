@@ -19,16 +19,22 @@ cleanup() {
 trap cleanup EXIT
 
 echo '{"error": "not tried yet"}' > "${dst}client.json"
-i=1
+i=4
 while grep '"error":' "${dst}client.json"
 do
+    if [ $i -ge 32 ]
+    then
+        exit 1
+    fi
+
+    sleep $i
+
     $hexec l3ep1 \
         taskset --cpu-list $threads-$(expr $threads + $threads - 1) \
         iperf3 --server -p 12865 --json \
         | tee "${dst}server.json" &
     # $! only gives use the pid of sudo.
 
-    i=$((i*2))
     sleep $i
 
     $hexec l3h1 \
@@ -39,4 +45,6 @@ do
 
     sudo pkill -SIGTERM iperf3
     wait
+
+    i=$((i*2))
 done
