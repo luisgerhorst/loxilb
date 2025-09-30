@@ -19,7 +19,7 @@ cleanup() {
 trap cleanup EXIT
 
 echo '{"error": "not tried yet"}' > "${dst}client.json"
-i=4
+i=8
 while grep '"error":' "${dst}client.json"
 do
     if [ $i -ge 32 ]
