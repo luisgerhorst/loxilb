@@ -9,6 +9,12 @@ echo "#########################################"
 echo "Spawning all hosts"
 echo "#########################################"
 
+spawn_docker_host --dock-type host --dock-name l3h1
+for i in $(seq 1 $OSE_LOXILB_SERVERS)
+do
+  spawn_docker_host --dock-type host --dock-name l3ep$i
+done
+
 spawn_docker_host --dock-type loxilb --dock-name llb1 --cpuset-cpus $(expr $(nproc) - 2)-$(expr $(nproc) - 1)
 
 set +x
@@ -17,12 +23,6 @@ do
   sleep 5
 done
 set -x
-
-spawn_docker_host --dock-type host --dock-name l3h1
-for i in $(seq 1 $OSE_LOXILB_SERVERS)
-do
-  spawn_docker_host --dock-type host --dock-name l3ep$i
-done
 
 echo "#########################################"
 echo "Connecting and configuring  hosts"
