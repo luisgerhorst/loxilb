@@ -153,11 +153,26 @@ spawn_docker_host() {
       #   $docker_exec_lb $bgp_opts $cluster_opts
       docker run -u root --cap-add SYS_ADMIN   --restart unless-stopped --privileged -dt $docker_extra_opts --entrypoint /bin/bash $bgp_conf -v /dev/log:/dev/log -v /etc/shared/$dname:/etc/shared $loxilb_config --name $dname $lxdocker
       get_llb_peerIP $dname
-      sudo sysctl --ignore --write kernel.bpf_precise=$LO_BPF_PRECISE
+
+      exit 1 # TODO
+
       docker exec -dt $dname /root/loxilb-io/loxilb/loxilb $bgp_opts $cluster_opts $ka_opts $extra_opts
     else
+      set -x
       docker run -u root --cap-add SYS_ADMIN   --restart unless-stopped --privileged -dt $docker_extra_opts --entrypoint /bin/bash $bgp_conf -v /dev/log:/dev/log -v `pwd`/cert:/opt/loxilb/cert/ $loxilb_config --name $dname $lxdocker $bgp_opts
+
+      docker cp ../../loxilb-ebpf $dname:/opt/loxilb-ebpf-src
+      de="docker exec -t $dname"
+      $de apt --assume-yes update
+      $de apt --assume-yes install clang llvm libelf-dev gcc-multilib libpcap-dev \
+        elfutils dwarves \
+        build-essential bc kmod cpio flex libncurses5-dev libelf-dev libssl-dev dwarves bison \
+        clang-13 \
+        make
+      $de make -j $(nproc) -C /opt/loxilb-ebpf-src/kernel llb_ebpf_main.o llb_ebpf_emain.o
+
       sudo sysctl --ignore --write kernel.bpf_precise=$LO_BPF_PRECISE
+
       docker exec -dt $dname /root/loxilb-io/loxilb/loxilb $bgp_opts $cluster_opts $extra_opts
     fi
   elif [[ "$dtype" == "host" ]]; then

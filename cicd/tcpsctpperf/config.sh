@@ -17,6 +17,64 @@ done
 
 spawn_docker_host --dock-type loxilb --dock-name llb1 --cpuset-cpus $(expr $(nproc) - 2)-$(expr $(nproc) - 1)
 
+if [ ! -e $LO_DST/opt-loxilb ]
+then
+  docker cp llb1:/opt/loxilb $LO_DST/opt-loxilb
+  rm -rfd $LO_DST/opt-loxilb/cert
+  # bpftool=$HOME/lights-out/bpftool-v5.18
+  bpftool=bpftool
+  for obj in $LO_DST/opt-loxilb/llb_ebpf_main.o
+  do
+    bpf_obj_name=$(basename $obj .o)
+    type_arg=""
+    case $bpf_obj_name in
+      llb_ebpf_main)
+        type_arg="type tc"
+        ;;
+      llb_ebpf_emain)
+        type_arg="type tc"
+        ;;
+      llb_kern_mon)
+        type_arg="type perf_event"
+        ;;
+      llb_xdp_main)
+        type_arg="type xdp.frags/devmap"
+        ;;
+      llb_kern_sock)
+        type_arg="type cgroup/connect4"
+        ;;
+    esac
+    path=/sys/fs/bpf/$bpf_obj_name
+    load_arg="prog loadall $obj $path $type_arg"
+
+		sudo sysctl --ignore --write kernel.bpf_precise=$LO_BPF_PRECISE
+
+		set +e
+		sudo $bpftool $load_arg \
+			2> $LO_DST/$bpftool_dst/$bpf_obj_name.loadall.log
+		ec2=$?
+		set -e
+		sudo dmesg > $LO_DST/${bpftool_dst}/$bpf_obj_name.dmesg.log
+
+		sudo sysctl --ignore --write kernel.bpf_precise=1
+
+		if [ $ec2 -ne 0 ]
+		then
+			tail $LO_DST/$bpftool_dst/$bpf_obj_name.loadall.log
+			exit 1
+		fi
+
+		for pinned_prog in $(sudo find "$path" -type f)
+		do
+			pinned_prog_name=$(basename $pinned_prog)
+			sudo bpftool --json --pretty prog dump xlated pinned "$pinned_prog" > $LO_DST/${bpftool_dst}/$bpf_obj_name-$pinned_prog_name.xlated.json
+			sudo bpftool prog dump xlated pinned $pinned_prog > $LO_DST/$bpftool_dst/$bpf_obj_name-$pinned_prog_name
+		done
+
+		sudo rm -rfd $path
+	done
+fi
+
 set +x
 while ! docker exec -i llb1 bash -c 'cat /var/log/loxilb*.log' | grep 'tc: bpf attach OK for eth0'
 do
