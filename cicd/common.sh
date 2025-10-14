@@ -164,11 +164,12 @@ spawn_docker_host() {
       docker cp ../../loxilb-ebpf $dname:/opt/loxilb-ebpf-src
       de="docker exec -t $dname"
       $de apt --assume-yes update
-      $de apt --assume-yes install clang llvm libelf-dev gcc-multilib libpcap-dev \
+      test $(arch) == aarch64 || $de apt --assume-yes install gcc-multilib
+      $de apt --assume-yes install clang llvm libelf-dev libpcap-dev \
         elfutils dwarves \
         build-essential bc kmod cpio flex libncurses5-dev libelf-dev libssl-dev dwarves bison \
         clang-13 \
-        make
+        make libbpf-dev
       $de make -j $(nproc) -C /opt/loxilb-ebpf-src/kernel llb_ebpf_main.o llb_ebpf_emain.o
 
       sudo sysctl --ignore --write kernel.bpf_precise=$LO_BPF_PRECISE
