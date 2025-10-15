@@ -179,11 +179,15 @@ spawn_docker_host() {
         export LO_BPF_EXTRA_CFLAGS="$LO_BPF_EXTRA_CFLAGS -DMAP_LOOKUP_ELEM_BY_VALUE"
       fi
 
-      $de make -j $(nproc) -C /opt/loxilb-ebpf-src/kernel \
-        LO_PBUF_UNROLL=$LO_PBUF_UNROLL \
-        LO_PBUF_STACK_SZ=$LO_PBUF_STACK_SZ \
-        LO_BPF_EXTRA_CFLAGS="${LO_BPF_EXTRA_CFLAGS}" \
-        llb_ebpf_main.o llb_ebpf_emain.o
+      export LO_COMPILE_BPF_O=${LO_COMPILE_BPF_O:-1}
+      if [ $LO_COMPILE_BPF_O == 1 ]
+      then
+        $de make -j $(nproc) -C /opt/loxilb-ebpf-src/kernel \
+          LO_PBUF_UNROLL=$LO_PBUF_UNROLL \
+          LO_PBUF_STACK_SZ=$LO_PBUF_STACK_SZ \
+          LO_BPF_EXTRA_CFLAGS="${LO_BPF_EXTRA_CFLAGS}" \
+          llb_ebpf_main.o llb_ebpf_emain.o
+      fi
 
       sudo sysctl --ignore --write kernel.bpf_precise=$LO_BPF_PRECISE
 
