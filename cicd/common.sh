@@ -164,13 +164,6 @@ spawn_docker_host() {
 
       docker cp ../../loxilb-ebpf $dname:/opt/loxilb-ebpf-src
 
-      $de apt --assume-yes update
-      $de apt --assume-yes install clang llvm libelf-dev gcc-multilib libpcap-dev \
-        elfutils dwarves \
-        build-essential bc kmod cpio flex libncurses5-dev libelf-dev libssl-dev dwarves bison \
-        clang-13 \
-        make
-
       export LO_PBUF_STACK_SZ=${LO_PBUF_STACK_SZ:-16}
       export LO_PBUF_UNROLL=${LO_PBUF_UNROLL:--1}
       export LO_BPF_EXTRA_CFLAGS="${LO_BPF_EXTRA_CFLAGS:-}"
