@@ -19,6 +19,7 @@ spawn_docker_host --dock-type loxilb --dock-name llb1 --cpuset-cpus $(expr $(npr
 
 if [ ! -e $LO_DST/opt-loxilb ]
 then
+  bpftool_dst=bpftool
   docker cp llb1:/opt/loxilb $LO_DST/opt-loxilb
   rm -rfd $LO_DST/opt-loxilb/cert
   # bpftool=$HOME/lights-out/bpftool-v5.18

@@ -11,8 +11,8 @@ hexec="sudo ip netns exec "
 dexec="sudo docker exec -i "
 hns="sudo ip netns "
 hexist="$vrn$hn"
-lxdocker="ghcr.io/loxilb-io/loxilb:v0.9.8.4"
-hostdocker="ghcr.io/loxilb-io/nettest:latest@sha256:a0d43f83cc7911816624e2fe505be6bd63ee846e313397c0828f8693df0eb184"
+lxdocker="lo-loxilb"
+hostdocker="lo-nettest"
 cluster_opts=""
 extra_opts=""
 ka_opts=""
@@ -160,20 +160,29 @@ spawn_docker_host() {
     else
       set -x
       docker run -u root --cap-add SYS_ADMIN   --restart unless-stopped --privileged -dt $docker_extra_opts --entrypoint /bin/bash $bgp_conf -v /dev/log:/dev/log -v `pwd`/cert:/opt/loxilb/cert/ $loxilb_config --name $dname $lxdocker $bgp_opts
+      de="$SUDO docker exec -t $dname"
 
       docker cp ../../loxilb-ebpf $dname:/opt/loxilb-ebpf-src
-      de="docker exec -t $dname"
+
       $de apt --assume-yes update
       $de apt --assume-yes install clang llvm libelf-dev gcc-multilib libpcap-dev \
         elfutils dwarves \
         build-essential bc kmod cpio flex libncurses5-dev libelf-dev libssl-dev dwarves bison \
         clang-13 \
         make
+
       export LO_PBUF_STACK_SZ=${LO_PBUF_STACK_SZ:-16}
-      export LO_PBUF_UNROLL=${LO_PBUF_UNROLL:-$LO_PBUF_STACK_SZ}
+      export LO_PBUF_UNROLL=${LO_PBUF_UNROLL:--1}
+      export LO_BPF_EXTRA_CFLAGS="${LO_BPF_EXTRA_CFLAGS:-}"
+      if sudo bpftool btf dump file /sys/kernel/btf/vmlinux | grep bpf_map_lookup_elem_by_value
+      then
+        export LO_BPF_EXTRA_CFLAGS="$LO_BPF_EXTRA_CFLAGS -DMAP_LOOKUP_ELEM_BY_VALUE"
+      fi
+
       $de make -j $(nproc) -C /opt/loxilb-ebpf-src/kernel \
         LO_PBUF_UNROLL=$LO_PBUF_UNROLL \
         LO_PBUF_STACK_SZ=$LO_PBUF_STACK_SZ \
+        LO_BPF_EXTRA_CFLAGS="${LO_BPF_EXTRA_CFLAGS}" \
         llb_ebpf_main.o llb_ebpf_emain.o
 
       sudo sysctl --ignore --write kernel.bpf_precise=$LO_BPF_PRECISE

@@ -1,3 +1,3 @@
 [submodule "loxilb-ebpf"]
 	path = loxilb-ebpf
-	url = https://github.com/loxilb-io/loxilb-ebpf.git
+	url = git@gitos.rrze.fau.de:i4/openaccess/lights-out-loxilb-ebpf.git
