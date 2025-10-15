@@ -169,7 +169,12 @@ spawn_docker_host() {
         build-essential bc kmod cpio flex libncurses5-dev libelf-dev libssl-dev dwarves bison \
         clang-13 \
         make
-      $de make -j $(nproc) -C /opt/loxilb-ebpf-src/kernel llb_ebpf_main.o llb_ebpf_emain.o
+      export LO_PBUF_STACK_SZ=${LO_PBUF_STACK_SZ:-16}
+      export LO_PBUF_UNROLL=${LO_PBUF_UNROLL:-$LO_PBUF_STACK_SZ}
+      $de make -j $(nproc) -C /opt/loxilb-ebpf-src/kernel \
+        LO_PBUF_UNROLL=$LO_PBUF_UNROLL \
+        LO_PBUF_STACK_SZ=$LO_PBUF_STACK_SZ \
+        llb_ebpf_main.o llb_ebpf_emain.o
 
       sudo sysctl --ignore --write kernel.bpf_precise=$LO_BPF_PRECISE
 
