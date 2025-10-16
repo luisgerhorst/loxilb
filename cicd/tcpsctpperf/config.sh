@@ -9,13 +9,16 @@ echo "#########################################"
 echo "Spawning all hosts"
 echo "#########################################"
 
-spawn_docker_host --dock-type host --dock-name l3h1
+spawn_docker_host --dock-type host --dock-name l3h1 \
+  --cpuset-cpus 0-0
 for i in $(seq 1 $OSE_LOXILB_SERVERS)
 do
-  spawn_docker_host --dock-type host --dock-name l3ep$i
+  spawn_docker_host --dock-type host --dock-name l3ep$i \
+    --cpuset-cpus $i-$i
 done
 
-spawn_docker_host --dock-type loxilb --dock-name llb1 --cpuset-cpus $(expr $(nproc) - 2)-$(expr $(nproc) - 1)
+spawn_docker_host --dock-type loxilb --dock-name llb1 \
+  --cpuset-cpus $(expr $(nproc) - 1)-$(expr $(nproc) - 1)
 
 if [ ! -e $LO_DST/opt-loxilb ]
 then

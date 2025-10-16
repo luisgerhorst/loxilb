@@ -159,7 +159,10 @@ spawn_docker_host() {
       docker exec -dt $dname /root/loxilb-io/loxilb/loxilb $bgp_opts $cluster_opts $ka_opts $extra_opts
     else
       set -x
-      docker run -u root --cap-add SYS_ADMIN   --restart unless-stopped --privileged -dt $docker_extra_opts --entrypoint /bin/bash $bgp_conf -v /dev/log:/dev/log -v `pwd`/cert:/opt/loxilb/cert/ $loxilb_config --name $dname $lxdocker $bgp_opts
+      docker run -u root --cap-add SYS_ADMIN $cpuset_cpus_arg \
+        --restart unless-stopped --privileged -dt $docker_extra_opts \
+        --entrypoint /bin/bash $bgp_conf -v /dev/log:/dev/log \
+        -v `pwd`/cert:/opt/loxilb/cert/ $loxilb_config --name $dname $lxdocker $bgp_opts
       de="$SUDO docker exec -t $dname"
 
       docker cp ../../loxilb-ebpf $dname:/opt/loxilb-ebpf-src
@@ -193,10 +196,12 @@ spawn_docker_host() {
     if [[ "$bgp" == "yes" || ! -z "$bpath" ]]; then
       $docker_run --privileged -dit $bgp_conf --name $dname ewindisch/quagga
     else
-      docker run -u root --cap-add SYS_ADMIN $cpuset_cpus_arg -dit --name $dname $hostdocker
+      docker run -u root --cap-add SYS_ADMIN $cpuset_cpus_arg \
+        -dit --name $dname $hostdocker
     fi
   elif [[ "$dtype" == "seahost" ]]; then
-      docker run -u root --cap-add SYS_ADMIN -i -t --rm --detach --entrypoint /bin/bash --name $dname  ghcr.io/loxilb-io/seagull:ubuntu1804
+    exit 1 # TODO
+    docker run -u root --cap-add SYS_ADMIN -i -t --rm --detach --entrypoint /bin/bash --name $dname  ghcr.io/loxilb-io/seagull:ubuntu1804
   fi
 
   pid=""
