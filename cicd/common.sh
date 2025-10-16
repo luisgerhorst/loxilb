@@ -170,7 +170,8 @@ spawn_docker_host() {
       export LO_PBUF_STACK_SZ=${LO_PBUF_STACK_SZ:-16}
       export LO_PBUF_UNROLL=${LO_PBUF_UNROLL:--1}
       export LO_BPF_EXTRA_CFLAGS="${LO_BPF_EXTRA_CFLAGS:-}"
-      if sudo bpftool btf dump file /sys/kernel/btf/vmlinux | grep bpf_map_lookup_elem_by_value
+      export LO_BY_VALUE="${LO_BY_VALUE:-1}"
+      if [ $LO_BY_VALUE -ne 0 ] && sudo bpftool btf dump file /sys/kernel/btf/vmlinux | grep bpf_map_lookup_elem_by_value
       then
         export LO_BPF_EXTRA_CFLAGS="$LO_BPF_EXTRA_CFLAGS -DMAP_LOOKUP_ELEM_BY_VALUE"
       fi
